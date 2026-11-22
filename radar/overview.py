@@ -51,8 +51,9 @@ def _cell(s: str) -> str:
     return (s or "").replace("|", "/").replace("\n", " ").strip()
 
 
-def build(results: dict, scorer: Scorer, countries: set[str], now: datetime,
-          first_seen: dict[str, float]) -> str:
+def collect(results: dict, scorer: Scorer, countries: set[str], now: datetime,
+            first_seen: dict[str, float], min_score: int, merge_dates: bool) -> list[Event]:
+    """Svi buduci listing eventi s >= min_score bodova, bez duplikata (isti event s vise izvora)."""
     today = now.date()
     events: list[Event] = []
     for name, r in results.items():
@@ -67,20 +68,20 @@ def build(results: dict, scorer: Scorer, countries: set[str], now: datetime,
             if d and d < today:
                 continue  # prosao
             scorer.score(e)
-            if e.score < scorer.instant:
+            if e.score < min_score:
                 continue
             e.extra["_date"] = d
             e.extra["_new"] = now.timestamp() - first_seen.get(f"{name}:{e.uid}", 0) < 7 * 86400
             events.append(e)
 
-    # spoji isti event s vise izvora / termina
     events.sort(key=lambda e: (-(bool(e.start)), -e.score))  # oni s detaljima imaju prednost
     reps: list[Event] = []
     index: dict[str, list[Event]] = {}
     for e in events:
         keys = key_tokens(e.title)
         cands = {id(r): r for k in keys for r in index.get(k, [])}.values()
-        dup = next((r for r in cands if similar(r.title, e.title) >= 0.85 and r.city == e.city), None)
+        dup = next((r for r in cands if similar(r.title, e.title) >= 0.85 and r.city == e.city
+                    and (merge_dates or r.extra["_date"] == e.extra["_date"])), None)
         if dup:
             if e.extra["_date"] and e.extra["_date"] != dup.extra["_date"]:
                 dup.extra.setdefault("_dates", {dup.extra["_date"]}).add(e.extra["_date"])
@@ -89,6 +90,39 @@ def build(results: dict, scorer: Scorer, countries: set[str], now: datetime,
         reps.append(e)
         for k in keys:
             index.setdefault(k, []).append(e)
+    return reps
+
+
+def _price(e: Event) -> str:
+    p = (e.price or "").strip()
+    if p and not re.search(r"[a-zA-Z€$]", p.replace("od", "")):
+        p += " RSD" if e.country == "RS" else (" KM" if e.country == "BA" else " EUR")
+    return p
+
+
+def to_json(reps: list[Event], now: datetime, instant: int) -> dict:
+    """Podaci za web stranicu (site/index.html). Bez razloga bodovanja (stranica je javna)."""
+    out = []
+    for e in reps:
+        d = e.extra["_date"]
+        exact = bool(e.start) or bool(re.search(r"\d{1,2}\D+\d{1,2}\D+20\d{2}|\d{1,2} [a-z]+ 20\d{2}", norm(e.date)))
+        tm = e.start[11:16] if len(e.start) >= 16 and e.start[11:16] != "00:00" else ""
+        if not tm:
+            m = re.search(r"\b(\d{1,2}:\d{2})\b", e.date)
+            tm = m.group(1) if m else ""
+        out.append({
+            "t": e.title, "u": e.url, "v": e.venue, "c": e.city, "cc": e.country or "",
+            "d": d.isoformat() if d and exact else None, "y": d.year if d else None, "tm": tm,
+            "dt": "" if (d and exact) else e.date, "st": e.availability.split(",")[0] if e.availability else "",
+            "sale": e.sale_start[:16] if e.sale_start else "", "p": _price(e), "sc": e.score,
+            "src": e.source, "new": bool(e.extra.get("_new")),
+        })
+    return {"updated": now.isoformat(timespec="minutes"), "big": instant, "events": out}
+
+
+def build(results: dict, scorer: Scorer, countries: set[str], now: datetime,
+          first_seen: dict[str, float]) -> str:
+    reps = collect(results, scorer, countries, now, first_seen, scorer.instant, merge_dates=True)
 
     def sort_key(e: Event):
         d = e.extra["_date"]

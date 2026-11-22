@@ -9,7 +9,9 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures as cf
+import json
 import os
+import shutil
 import sys
 import time
 from datetime import datetime, timedelta
@@ -313,6 +315,9 @@ class Run:
         lines.append(f"\n🩺 Izvori: {len(self.st.sources) - len(bad)} rade"
                      + (f", ne rade: {', '.join(bad)}" if bad else "")
                      + f" · evenata s detaljima: {sum(len(x.get('snap', {})) for x in self.st.sources.values())}")
+        page = os.environ.get("RADAR_PAGE_URL", "").strip()
+        if page:
+            lines.append(f'📋 <a href="{page}">Pregled svih evenata</a>')
         header = f"☀️ <b>Jutarnji sažetak {self.now.strftime('%d.%m.%Y.')}</b>"
         for part in N.chunk(lines, header):
             self.nt.send(part, silent=True)
@@ -372,11 +377,19 @@ def scan(args) -> int:
 
 def write_overview(st: State, wl: dict, results: dict, now: datetime, path: Path | None) -> None:
     first = {f"{n}:{u}": ts for n, s in st.sources.items() for u, ts in s.get("first", {}).items()}
-    md = overview.build(results, Scorer(wl), set(wl.get("countries") or []), now, first)
+    scorer = Scorer(wl)
+    countries = set(wl.get("countries") or [])
+    md = overview.build(results, scorer, countries, now, first)
+    reps = overview.collect(results, scorer, countries, now, first, scorer.digest, merge_dates=False)
+    data = overview.to_json(reps, now, scorer.instant)
     if path:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(md, encoding="utf-8")
-        print(f"Pregled: {path} ({md.count(chr(10))} redaka)")
+        site = path.parent / "site"
+        site.mkdir(exist_ok=True)
+        (site / "data.json").write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+        shutil.copy(ROOT / "site" / "index.html", site / "index.html")
+        print(f"Pregled: {path} ({md.count(chr(10))} redaka), stranica: {len(data['events'])} evenata")
 
 
 def pregled_cmd(args) -> int:

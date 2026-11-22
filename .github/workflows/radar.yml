@@ -50,6 +50,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           BANDSINTOWN_APP_ID: ${{ secrets.BANDSINTOWN_APP_ID }}
+          RADAR_PAGE_URL: https://${{ github.repository_owner }}.github.io/karte-pregled/
         run: python -m radar scan ${{ inputs.digest_now && '--digest-now' || '' }}
 
       - name: Spremi stanje
@@ -61,6 +62,22 @@ jobs:
           git add seen.json PREGLED.md
           git -c user.name="radar-bot" -c user.email="radar-bot@users.noreply.github.com" commit -qm "state $(date -u +%FT%TZ)"
           git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" state
+
+      - name: Objavi stranicu (karte-pregled)
+        env:
+          PAGES_DEPLOY_KEY: ${{ secrets.PAGES_DEPLOY_KEY }}
+          PAGES_REPO: ${{ github.repository_owner }}/karte-pregled
+        run: |
+          if [ -z "$PAGES_DEPLOY_KEY" ] || [ ! -f state/site/data.json ]; then echo "preskacem objavu stranice"; exit 0; fi
+          mkdir -p ~/.ssh && echo "$PAGES_DEPLOY_KEY" > ~/.ssh/pages && chmod 600 ~/.ssh/pages
+          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
+          mkdir -p pub && cp state/site/index.html state/site/data.json pub/ && touch pub/.nojekyll
+          cd pub
+          git init -q -b main
+          git add -A
+          git -c user.name="radar-bot" -c user.email="radar-bot@users.noreply.github.com" commit -qm "pregled $(date -u +%FT%TZ)"
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/pages -o IdentitiesOnly=yes" git push -qf "git@github.com:${PAGES_REPO}.git" main
+          rm -f ~/.ssh/pages
 
       - name: Javi gresku
         if: failure()

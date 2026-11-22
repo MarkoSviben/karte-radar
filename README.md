@@ -11,6 +11,13 @@ Prati nove koncerte, utakmice, festivale i stand-up u **HR, RS, BiH i SLO** i š
 
 Radi besplatno na GitHub Actionsu, svakih 30 min danju i svaki sat noću.
 
+## Pregledna stranica
+
+**https://markosviben.github.io/karte-pregled/** prikazuje sve evente koji su trenutno u prodaji, s filterima po državi, mjesecu i statusu te pretragom. Osvježava se svakim runom.
+- Stranica i njezini podaci (`data.json`) su u **javnom** repou `karte-pregled`. Tamo su samo javni podaci o eventima, bez koda, watchliste i ntfy imena.
+- Radar u taj repo piše preko deploy ključa (secret `PAGES_DEPLOY_KEY`), koji smije pisati samo u njega.
+- Izgled stranice je u [site/index.html](site/index.html).
+
 ## Izvori
 
 | Izvor | Kako | Što daje |
