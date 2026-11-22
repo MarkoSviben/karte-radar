@@ -38,6 +38,8 @@ def parse(html: str, base: str, name: str, country: str) -> list[Event]:
             source=name, uid=uid, title=title or m.group(2).replace("_", " ").capitalize(),
             url=urljoin(base, href), kind="listing", venue=venue, city=city, country=country,
             date=clean(dt.text()) if dt else "", price=clean(price.text()) if price else "",
+            # kartica s cijenom = karte se mogu kupiti
+            availability="InStock" if price and re.search(r"\d", price.text()) else "",
         )
     return list(out.values())
 

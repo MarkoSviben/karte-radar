@@ -52,15 +52,21 @@ def _cell(s: str) -> str:
 
 
 def collect(results: dict, scorer: Scorer, countries: set[str], now: datetime,
-            first_seen: dict[str, float], min_score: int, merge_dates: bool) -> list[Event]:
-    """Svi buduci listing eventi s >= min_score bodova, bez duplikata (isti event s vise izvora)."""
+            first_seen: dict[str, float], min_score: int, merge_dates: bool,
+            announcements: bool = False) -> list[Event]:
+    """Svi buduci eventi s >= min_score bodova, bez duplikata (isti event s vise izvora).
+    announcements=True: dodaj i nove stranice izvodjaca na Eventimu (zadnjih 14 dana) kao najave."""
     today = now.date()
     events: list[Event] = []
     for name, r in results.items():
         if r.get("skipped") or not r.get("events"):
             continue
         for e in r["events"]:
-            if e.kind != "listing":
+            is_new = now.timestamp() - first_seen.get(f"{name}:{e.uid}", 0) < 7 * 86400
+            if e.kind == "artist":
+                if not (announcements and f"{name}:{e.uid}" in first_seen):
+                    continue
+            elif e.kind not in ("listing", "tour"):
                 continue
             if e.country and countries and e.country not in countries:
                 continue
@@ -71,7 +77,7 @@ def collect(results: dict, scorer: Scorer, countries: set[str], now: datetime,
             if e.score < min_score:
                 continue
             e.extra["_date"] = d
-            e.extra["_new"] = now.timestamp() - first_seen.get(f"{name}:{e.uid}", 0) < 7 * 86400
+            e.extra["_new"] = is_new
             events.append(e)
 
     events.sort(key=lambda e: (-(bool(e.start)), -e.score))  # oni s detaljima imaju prednost
@@ -100,7 +106,44 @@ def _price(e: Event) -> str:
     return p
 
 
-def to_json(reps: list[Event], now: datetime, instant: int) -> dict:
+SOURCE_LABEL = {"eventim_hr": "Eventim HR", "eventim_si": "Eventim SI", "tickets_rs": "tickets.rs",
+                "gigstix": "Gigs Tix", "ulaznice_hr": "ulaznice.hr", "kupikartu_ba": "kupikartu.ba",
+                "mojekarte_si": "mojekarte.si", "google_news": "Entrio", "bandsintown": "Bandsintown"}
+
+
+def ticket_state(e: Event, now: datetime) -> str:
+    """Kategorija karata:
+    soon = karte jos nisu izasle (poznat datum prodaje u buducnosti ili pretprodaja)
+    ann  = najava (izvodjac se pojavio, eventa/karata jos nema)
+    on   = u prodaji, low = malo karata, out = rasprodano / nema karata
+    unk  = event je na prodajnom mjestu, ali izvor ne kaze status karata"""
+    if e.kind == "artist":
+        return "ann"
+    if e.sale_start:
+        try:
+            sale = datetime.fromisoformat(e.sale_start.replace("Z", "+00:00"))
+            if sale.tzinfo is None:
+                sale = sale.replace(tzinfo=now.tzinfo)
+            if sale > now:
+                return "soon"
+        except ValueError:
+            pass
+    av = set((e.availability or "").split(",")) - {""}
+    if av & {"PreSale", "PreOrder"}:
+        return "soon"
+    if "LimitedAvailability" in av:
+        return "low"
+    if av & {"InStock", "OnlineOnly"}:
+        return "on"
+    if av and av <= {"SoldOut", "OutOfStock", "Discontinued"}:
+        return "out"
+    if e.sale_start:
+        return "on"  # prodaja je pocela, status nepoznat -> u prodaji
+    return "unk"
+
+
+def to_json(reps: list[Event], now: datetime, instant: int, sources: dict | None = None,
+            details_at: str = "") -> dict:
     """Podaci za web stranicu (site/index.html). Bez razloga bodovanja (stranica je javna)."""
     out = []
     for e in reps:
@@ -113,11 +156,14 @@ def to_json(reps: list[Event], now: datetime, instant: int) -> dict:
         out.append({
             "t": e.title, "u": e.url, "v": e.venue, "c": e.city, "cc": e.country or "",
             "d": d.isoformat() if d and exact else None, "y": d.year if d else None, "tm": tm,
-            "dt": "" if (d and exact) else e.date, "st": e.availability.split(",")[0] if e.availability else "",
+            "dt": "" if (d and exact) else e.date, "ks": ticket_state(e, now),
             "sale": e.sale_start[:16] if e.sale_start else "", "p": _price(e), "sc": e.score,
-            "src": e.source, "new": bool(e.extra.get("_new")),
+            "src": SOURCE_LABEL.get(e.source, e.source), "k": e.kind, "new": bool(e.extra.get("_new")),
+            "chk": datetime.fromtimestamp(e.extra["checked"], now.tzinfo).isoformat(timespec="minutes")
+                   if e.extra.get("checked") else "",
         })
-    return {"updated": now.isoformat(timespec="minutes"), "big": instant, "events": out}
+    return {"updated": now.isoformat(timespec="minutes"), "big": instant, "events": out,
+            "sources": sources or {}, "details_at": details_at}
 
 
 def build(results: dict, scorer: Scorer, countries: set[str], now: datetime,

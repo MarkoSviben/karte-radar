@@ -31,6 +31,7 @@ def parse(html: str, base: str, name: str, country: str) -> list[Event]:
             venue, city = (venue, city) if venue else (v, "")
         out[uid] = Event(source=name, uid=uid, title=title or slug_title(m.group(2)),
                          url=urljoin(base, a.attributes["href"]), kind="listing", venue=venue, city=city,
+                         availability="InStock",  # na pocetnoj su samo eventi s otvorenom prodajom
                          date=clean(d.text()) if d else "", country=country)
     return list(out.values())
 

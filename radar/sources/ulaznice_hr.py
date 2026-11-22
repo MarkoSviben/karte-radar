@@ -33,6 +33,7 @@ def parse(html: str, base: str, name: str, country: str) -> list[Event]:
             source=name, uid=uid, title=clean(a.text()), url=urljoin(base, a.attributes["href"]),
             kind="listing", venue=venue, date=date, country=country,
             price=price.group(1) if price else "",
+            availability=("InStock" if int(free.group(1)) > 0 else "SoldOut") if free else "",
             extra={"free_seats": int(free.group(1))} if free else {},
         ))
     return list(out.values())

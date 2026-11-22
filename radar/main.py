@@ -162,7 +162,8 @@ class Run:
         for e in events:
             if not (e.availability or e.sale_start):
                 continue
-            cur = [e.availability, e.sale_start, self.ts]
+            # [status, pocetak prodaje, kad provjereno, datum eventa, cijena, naslov, dvorana, grad]
+            cur = [e.availability, e.sale_start, self.ts, e.start, e.price, e.title, e.venue, e.city]
             old = snap.get(e.uid)
             if old and e.uid not in fresh and (old[0], old[1]) != (cur[0], cur[1]):
                 self.changes.append((e, old, cur))
@@ -311,8 +312,9 @@ class Run:
                 lines.append(f"… i još {len(queue) - 60} manjih")
         if not lines:
             lines.append("\nNema novih evenata vrijednih spomena.")
-        bad = [n for n, s in self.st.sources.items() if s.get("fail", 0) >= FAIL_ALERT_AFTER]
-        lines.append(f"\n🩺 Izvori: {len(self.st.sources) - len(bad)} rade"
+        real = {n: s for n, s in self.st.sources.items() if not n.startswith("_")}
+        bad = [n for n, s in real.items() if s.get("fail", 0) >= FAIL_ALERT_AFTER]
+        lines.append(f"\n🩺 Izvori: {len(real) - len(bad)} rade"
                      + (f", ne rade: {', '.join(bad)}" if bad else "")
                      + f" · evenata s detaljima: {sum(len(x.get('snap', {})) for x in self.st.sources.values())}")
         page = os.environ.get("RADAR_PAGE_URL", "").strip()
@@ -379,9 +381,26 @@ def write_overview(st: State, wl: dict, results: dict, now: datetime, path: Path
     first = {f"{n}:{u}": ts for n, s in st.sources.items() for u, ts in s.get("first", {}).items()}
     scorer = Scorer(wl)
     countries = set(wl.get("countries") or [])
+    # eventi bez detalja u ovom runu -> uzmi zadnje poznate detalje iz stanja
+    for name, r in results.items():
+        snap = st.sources.get(name, {}).get("snap", {})
+        for e in r.get("events") or []:
+            sn = snap.get(e.uid)
+            if not sn:
+                continue
+            e.extra["checked"] = sn[2]
+            if not (e.availability or e.sale_start) and len(sn) >= 8:
+                e.availability, e.sale_start, e.start, e.price = sn[0], sn[1], sn[3] or e.start, sn[4] or e.price
+                e.title, e.venue, e.city = sn[5] or e.title, sn[6] or e.venue, sn[7] or e.city
     md = overview.build(results, scorer, countries, now, first)
-    reps = overview.collect(results, scorer, countries, now, first, scorer.digest, merge_dates=False)
-    data = overview.to_json(reps, now, scorer.instant)
+    reps = overview.collect(results, scorer, countries, now, first, scorer.digest, merge_dates=False,
+                            announcements=True)
+    # kad su zadnji put procitane stranice dvorana (datum prodaje, status) -> za prikaz svjezine
+    if any(e.availability for r in results.values() for e in (r.get("events") or []) if e.source.startswith("eventim")):
+        st.sources.setdefault("_meta", {})["details_at"] = now.isoformat(timespec="minutes")
+    srcs = {n: {"ok": not s.get("fail"), "n": s.get("last_count", 0)} for n, s in st.sources.items()
+            if not n.startswith("_") and n in results}
+    data = overview.to_json(reps, now, scorer.instant, srcs, st.sources.get("_meta", {}).get("details_at", ""))
     if path:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(md, encoding="utf-8")

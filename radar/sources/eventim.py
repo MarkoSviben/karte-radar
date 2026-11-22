@@ -187,6 +187,22 @@ def _big_venues(ctx: Context, venues: dict, min_weight: int) -> list[str]:
     return sorted(out)
 
 
+def _interesting_venues(ctx: Context, events: list[Event], skip: set[str]) -> list[str]:
+    """Dvorane u kojima je barem jedan event koji bi prosao prag za obavijest (osim `skip`)."""
+    from radar.scoring import Scorer
+
+    scorer = Scorer(ctx.watchlist)
+    out = set()
+    for e in events:
+        v = e.extra.get("venue_url")
+        if not v or v in skip or v in out:
+            continue
+        probe = Event(source=e.source, uid=e.uid, title=e.title, url=e.url, venue=e.venue, city=e.city, kind=e.kind)
+        if scorer.score(probe).score >= scorer.instant:
+            out.add(v)
+    return sorted(out)
+
+
 def fetch(ctx: Context, cfg: dict) -> list[Event]:
     name = cfg["_name"]
     country = cfg.get("country", "")
@@ -223,12 +239,24 @@ def fetch(ctx: Context, cfg: dict) -> list[Event]:
                              kind="artist", country=country,
                              summary="Nova stranica izvodjaca na Eventimu", extra={"lastmod": lastmod}))
 
-    # periodicki: velike dvorane -> detalji i statusi za sve njihove evente (za detekciju promjena)
+    # stranice dvorana -> detalji (datum, pocetak prodaje, status, cijena)
+    #  a) svaki `venue_scan_every`-ti run: velike dvorane s watchliste (za brzu detekciju promjena)
+    #  b) svaki run: `rotate_venues` drugih dvorana u kojima ima zanimljivih evenata, redom ukrug
+    plan: list[tuple[str, int]] = []
     every = int(cfg.get("venue_scan_every", 4))
+    big = _big_venues(ctx, venues, int(cfg.get("venue_min_weight", 40)))[: int(cfg.get("max_venues", 15))]
     if every and ctx.run_no % every == 0:
+        plan += [(v, int(cfg.get("venue_pages", 3))) for v in big]
+    rot = int(cfg.get("rotate_venues", 6))
+    if rot:
+        others = _interesting_venues(ctx, [e for e in out if e.kind == "listing" and e.country != "XX"], set(big))
+        if others:
+            start = (ctx.run_no * rot) % len(others)
+            plan += [(v, 2) for v in (others + others)[start:start + min(rot, len(others))]]
+    if plan:
         try:
-            for vurl in _big_venues(ctx, venues, int(cfg.get("venue_min_weight", 40)))[: int(cfg.get("max_venues", 15))]:
-                for uid, j in scan_venue(ctx, vurl, max_pages=int(cfg.get("venue_pages", 3))).items():
+            for vurl, pages in plan:
+                for uid, j in scan_venue(ctx, vurl, max_pages=pages).items():
                     if uid in by_uid:
                         apply_detail(by_uid[uid], j)
         except Blocked:

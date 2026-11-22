@@ -54,15 +54,26 @@ class Phrase:
         self.raw = raw.strip()
         self.exact = self.raw.startswith("=")
         self.toks = tokens(self.raw.lstrip("="))
+        # brzi predfilter: prva 3 slova prvog tokena (ili stema) moraju postojati u tekstu
+        first = self.toks[0] if self.toks else ""
+        base = first if (self.exact or len(first) <= 2 or first.isdigit()) else _stem(first)
+        self.key = base[:3]
 
-    def found_in(self, text_toks: list[str]) -> bool:
+    def found_in(self, text_toks: list[str], prefixes: set[str] | None = None) -> bool:
         n = len(self.toks)
         if n == 0:
+            return False
+        if prefixes is not None and self.key not in prefixes:
             return False
         for i in range(len(text_toks) - n + 1):
             if all(_tok_match(self.toks[j], text_toks[i + j], self.exact) for j in range(n)):
                 return True
         return False
+
+
+def prefixes(text_toks: list[str]) -> set[str]:
+    """Skup prvih 3 slova svakog tokena (za Phrase.found_in predfilter)."""
+    return {t[:3] for t in text_toks}
 
 
 def similar(a: str, b: str) -> float:

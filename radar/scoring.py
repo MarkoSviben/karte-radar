@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from radar.models import Event
-from radar.textnorm import Phrase, tokens
+from radar.textnorm import Phrase, prefixes, tokens
 
 
 @dataclass
@@ -56,7 +56,7 @@ class Scorer:
 
     def _news_gate(self, e: Event, toks: list[str], total: int) -> int:
         """Vijest bez spomena karata/prodaje ne ide odmah (tracevi, intervjui...)."""
-        if not self.gate_sale or any(p.found_in(toks) for p in self.gate_sale):
+        if not self.gate_sale or any(p.found_in(toks, prefixes(toks)) for p in self.gate_sale):
             return total
         if self.gate_event and any(p.found_in(toks) for p in self.gate_event) and e.extra.get("labels"):
             e.reasons.append("bez spomena karata → samo sažetak")
@@ -66,9 +66,10 @@ class Scorer:
 
     def score(self, e: Event) -> Event:
         toks = tokens(" ".join([e.title, e.venue, e.city, e.summary[:300] if e.kind == "news" else ""]))
+        pre = prefixes(toks)
         total, reasons, best_by_group = 0, [], {}
         for r in self.rules:
-            if any(p.found_in(toks) for p in r.phrases):
+            if any(p.found_in(toks, pre) for p in r.phrases):
                 if r.group == "keyword":
                     total += r.weight
                     reasons.append(f"{r.label}{r.weight:+d}")

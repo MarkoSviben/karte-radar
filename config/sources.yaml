@@ -9,6 +9,7 @@
 #  venue_scan_every: svaki koliki run se prolaze velike dvorane radi promjena (4 = svaka ~2h)
 #  venue_min_weight: koje dvorane s watchliste se prate (40 = stadioni + arene)
 #  venue_pages: koliko stranica po dvorani (10 evenata po stranici)
+#  rotate_venues: svaki run jos toliko drugih dvorana sa zanimljivim eventima, redom ukrug
 eventim_hr:
   type: eventim
   sitemap: https://www.eventim.hr/staticsite/sitemap/HRY/sitemapindex_hr.xml
@@ -16,6 +17,7 @@ eventim_hr:
   venue_scan_every: 4
   venue_min_weight: 40
   venue_pages: 3
+  rotate_venues: 6
 
 eventim_si:
   type: eventim
@@ -24,6 +26,7 @@ eventim_si:
   venue_scan_every: 4
   venue_min_weight: 40
   venue_pages: 3
+  rotate_venues: 6
 
 tickets_rs:
   type: tickets_rs
