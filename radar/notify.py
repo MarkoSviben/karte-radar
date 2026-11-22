@@ -1,15 +1,16 @@
-"""Slanje poruka na Telegram (ili ispis u konzolu za --dry-run)."""
+"""Slanje obavijesti: ntfy.sh stranica (glavno), Telegram (opcija) ili ispis u konzolu (--dry-run)."""
 from __future__ import annotations
 
 import html
 import os
+import re
 import time
 
 import httpx
 
 from radar.models import Event
 
-MAX_LEN = 4000
+MAX_LEN = 3000  # ntfy prima do 4096 bajtova, a nasa slova su 2 bajta
 COUNTRY_FLAG = {"HR": "🇭🇷", "RS": "🇷🇸", "BA": "🇧🇦", "SI": "🇸🇮", "ME": "🇲🇪", "MK": "🇲🇰"}
 KIND_ICON = {"listing": "🎟", "news": "📰", "artist": "🎤", "tour": "🗺"}
 
@@ -89,25 +90,83 @@ def chunk(text_lines: list[str], header: str = "") -> list[str]:
     return out
 
 
+def html_to_markdown(text: str) -> tuple[str, str, str]:
+    """Telegram HTML -> (naslov, markdown tijelo, prvi link) za ntfy."""
+    first_link = ""
+    m = re.search(r'<a href="([^"]+)"', text)
+    if m:
+        first_link = html.unescape(m.group(1))
+    md = re.sub(r'<a href="([^"]+)">(.*?)</a>', lambda x: f"[{x.group(2)}]({x.group(1)})", text, flags=re.S)
+    md = re.sub(r"</?b>", "**", md)
+    md = re.sub(r"</?i>", "_", md)
+    md = html.unescape(re.sub(r"<[^>]+>", "", md))
+    lines = md.strip().split("\n")
+    title = lines[0].replace("**", "").strip()
+    body = "\n".join(lines[1:]).strip() or title
+    return title[:200], body, first_link
+
+
+def _priority(title: str, silent: bool) -> int:
+    if silent:
+        return 2
+    if title.startswith(("🚨", "🔥", "➕", "🔄", "⏰", "🎤", "🗺")):
+        return 4
+    return 3
+
+
 class Notifier:
     def __init__(self, dry_run: bool = False):
         self.dry_run = dry_run
         self.token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
         self.chat_ids = [c.strip() for c in os.environ.get("TELEGRAM_CHAT_ID", "").split(",") if c.strip()]
+        self.ntfy_topic = os.environ.get("NTFY_TOPIC", "").strip()
+        self.ntfy_server = os.environ.get("NTFY_SERVER", "https://ntfy.sh").rstrip("/")
         self.sent = 0
-        if not dry_run and not (self.token and self.chat_ids):
-            print("! TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID nisu postavljeni -> ispisujem poruke u konzolu")
+        if not dry_run and not self.ntfy_topic and not (self.token and self.chat_ids):
+            print("! NTFY_TOPIC (ili TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID) nije postavljen -> ispisujem u konzolu")
             self.dry_run = True
 
     def send(self, text: str, silent: bool = False) -> bool:
         if self.dry_run:
-            print("----- [TELEGRAM] -----")
+            print("----- [OBAVIJEST] -----")
             print(text)
             self.sent += 1
             return True
         ok = True
+        if self.ntfy_topic:
+            ok &= self._ntfy(text, silent)
+        if self.token and self.chat_ids:
+            ok &= self._telegram(text, silent)
+        self.sent += 1
+        return ok
+
+    def _ntfy(self, text: str, silent: bool) -> bool:
+        title, body, link = html_to_markdown(text)
+        payload = {"topic": self.ntfy_topic, "title": title, "message": body, "markdown": True,
+                   "priority": _priority(title, silent)}
+        if link:
+            payload["click"] = link
+            payload["actions"] = [{"action": "view", "label": "Otvori", "url": link}]
+        for _ in range(3):
+            try:
+                r = httpx.post(self.ntfy_server, json=payload, timeout=20)
+                if r.status_code == 429:
+                    time.sleep(5)
+                    continue
+                if r.status_code != 200:
+                    print(f"! ntfy greska {r.status_code}: {r.text[:200]}")
+                    return False
+                time.sleep(0.3)
+                return True
+            except httpx.HTTPError as ex:
+                print(f"! ntfy greska: {ex}")
+                time.sleep(2)
+        return False
+
+    def _telegram(self, text: str, silent: bool) -> bool:
+        ok = True
         for chat in self.chat_ids:
-            for attempt in range(3):
+            for _ in range(3):
                 try:
                     r = httpx.post(
                         f"https://api.telegram.org/bot{self.token}/sendMessage",
@@ -126,5 +185,4 @@ class Notifier:
                     print(f"! Telegram greska: {ex}")
                     time.sleep(2)
             time.sleep(0.4)
-        self.sent += 1
         return ok

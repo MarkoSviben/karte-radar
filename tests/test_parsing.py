@@ -97,3 +97,11 @@ def test_eventim_cards():
     assert (a["availability"], a["start"][:10], a["price"]) == ("LimitedAvailability", "2026-12-25", "od € 44,00")
     assert a["name"] == "Bo&ič Magnifico" and a["url"].endswith("21779046/")
     assert (b["availability"], b["name"]) == ("OutOfStock", "Avsenik")
+
+
+def test_html_to_markdown():
+    from radar.notify import html_to_markdown
+    t, body, link = html_to_markdown('<b>🔥 NOVI EVENT</b>\n🎟 <b>Severina &amp; band</b>\n🔗 <a href="https://x/1?a=1&amp;b=2">Otvori</a>')
+    assert t == "🔥 NOVI EVENT"
+    assert body == "🎟 **Severina & band**\n🔗 [Otvori](https://x/1?a=1&b=2)"
+    assert link == "https://x/1?a=1&b=2"

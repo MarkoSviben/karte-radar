@@ -1,6 +1,6 @@
 # Karte radar 🎟
 
-Prati nove koncerte, utakmice, festivale i stand-up u **HR, RS, BiH i SLO** i javlja na **Telegram**:
+Prati nove koncerte, utakmice, festivale i stand-up u **HR, RS, BiH i SLO** i šalje obavijesti na tvoju **privatnu ntfy stranicu** (`https://ntfy.sh/<tajno-ime>`). Otvoriš je u browseru ili u ntfy aplikaciji na mobitelu i poruke stižu uživo. Telegram je opcija.
 
 - **🔥 odmah:** veliki event (stadion/arena, izvođač ili klub s tvoje liste, ključne riječi tipa "rasprodano", "dodatni koncert", "počela prodaja")
 - **⏰ podsjetnik** 24 h i oko 1–2 h prije početka prodaje, kad je poznat datum prodaje
@@ -27,34 +27,21 @@ Radi besplatno na GitHub Actionsu, svakih 30 min danju i svaki sat noću.
 
 **Napomena:** Entrio i stranice pojedinih eventa na Eventimu imaju anti-bot zaštitu (Cloudflare/Akamai). Radar je **ne zaobilazi**. Entrio prati preko Google Newsa. Za Eventim čita javni sitemap i javne stranice dvorana, koje sadrže sve detalje: polako, jednu po jednu, i staje na prvu bot-provjeru. Detalji (datum prodaje, status) postoje za evente u dvoranama koje Eventim ima u sitemapu. Za ostale stiže samo naslov, dvorana i grad. Radar ništa ne kupuje, samo javlja.
 
-## Postavljanje (jednom, ~10 min)
+## Postavljanje
 
-### 1. Telegram bot
-1. U Telegramu otvori **@BotFather** → `/newbot` → daj ime → dobiješ **token** (npr. `123456:ABC...`).
-2. Otvori svog novog bota i pošalji mu bilo koju poruku (npr. "bok").
-3. U browseru otvori `https://api.telegram.org/bot<TOKEN>/getUpdates` i nađi `"chat":{"id": 123456789`. To je tvoj **chat_id**.
-   - Za grupu: dodaj bota u grupu, pošalji poruku u grupi; chat_id grupe počinje s `-`.
-   - Više primatelja: `TELEGRAM_CHAT_ID` = `id1,id2`.
+Repo i tajno ime stranice (GitHub secret `NTFY_TOPIC`) su već postavljeni. Tebi ostaje:
 
-### 2. GitHub repo (privatni!)
-```bash
-cd Karte
-git init -b main
-git add .
-git commit -m "Karte radar"
-gh repo create karte-radar --private --source . --push
-```
+1. Otvori svoju stranicu `https://ntfy.sh/<NTFY_TOPIC>` (link je u poruci od Claudea) i spremi je u bookmarke.
+   - Na mobitelu: instaliraj aplikaciju **ntfy** (Android/iOS) → **+** → upiši isto tajno ime, pa dobivaš push obavijesti.
+   - U browseru klikni na zvonce, pa dobivaš obavijesti na desktopu.
+2. Tajno ime čuvaj kao lozinku: tko ga zna, može čitati poruke.
+3. ntfy.sh čuva poruke 12 sati. Stranica i aplikacija ih poslije pamte lokalno, ali samo dok su pretplaćene na temu.
 
-### 3. Secrets
-Na GitHubu: **Settings → Secrets and variables → Actions → New repository secret**
-- `TELEGRAM_BOT_TOKEN`: token od BotFathera
-- `TELEGRAM_CHAT_ID`: tvoj chat_id
-- `BANDSINTOWN_APP_ID` (opcionalno): zatraži na https://help.artists.bandsintown.com (API za partnere)
+Ručno pokretanje: `gh workflow run radar`, ili na webu **Actions → radar → Run workflow**.
 
-Ili iz terminala: `gh secret set TELEGRAM_BOT_TOKEN` i `gh secret set TELEGRAM_CHAT_ID`.
+**Telegram (opcionalno, umjesto ntfy ili uz njega):** kod @BotFather napravi bota, pa postavi `gh secret set TELEGRAM_BOT_TOKEN` i `gh secret set TELEGRAM_CHAT_ID`.
 
-### 4. Prvo pokretanje
-**Actions → radar → Run workflow.** Prvi run samo zapamti sve postojeće evente (~7000) i pošalje poruku "Karte radar je pokrenut". Od tada javlja samo **nove** stvari.
+**Bandsintown (opcionalno):** `gh secret set BANDSINTOWN_APP_ID`.
 
 ## Prilagodba
 
@@ -73,7 +60,7 @@ python -m venv .venv
 .venv\Scripts\python -m radar check                  # što svaki izvor trenutno vidi + bodovi
 .venv\Scripts\python -m radar scan --dry-run --show-all   # sve tretira kao novo, ispiše top 40
 .venv\Scripts\python -m pytest -q                    # testovi
-$env:TELEGRAM_BOT_TOKEN="..."; $env:TELEGRAM_CHAT_ID="..."; .venv\Scripts\python -m radar test-telegram
+$env:NTFY_TOPIC="..."; .venv\Scripts\python -m radar test-notify
 ```
 
 ## Potrošnja GitHub minuta

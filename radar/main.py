@@ -3,7 +3,7 @@
   python -m radar scan [--dry-run] [--show-all] [--only IZVOR] [--digest-now]
   python -m radar digest [--dry-run]        # posalji jutarnji sazetak odmah
   python -m radar check [--only IZVOR]      # samo dohvati izvore i ispisi sto vide (ne dira stanje)
-  python -m radar test-telegram             # probna poruka
+  python -m radar test-notify               # probna obavijest
 """
 from __future__ import annotations
 
@@ -396,10 +396,10 @@ def digest_cmd(args) -> int:
     return 0
 
 
-def test_telegram(args) -> int:
+def test_notify(args) -> int:
     nt = N.Notifier(dry_run=False)
-    ok = nt.send("👋 Karte radar: probna poruka. Ako ovo vidiš, Telegram radi!")
-    print("OK" if ok and not nt.dry_run else "Nije poslano (provjeri TELEGRAM_BOT_TOKEN i TELEGRAM_CHAT_ID)")
+    ok = nt.send("👋 <b>Karte radar: probna poruka</b>\nAko ovo vidiš, obavijesti rade!")
+    print("OK" if ok and not nt.dry_run else "Nije poslano (provjeri NTFY_TOPIC ili Telegram postavke)")
     return 0 if ok and not nt.dry_run else 1
 
 
@@ -424,7 +424,7 @@ def cli() -> None:
     d = sub.add_parser("digest", help="posalji sazetak odmah")
     d.add_argument("--dry-run", action="store_true")
     d.set_defaults(fn=digest_cmd)
-    t = sub.add_parser("test-telegram")
-    t.set_defaults(fn=test_telegram)
+    t = sub.add_parser("test-notify", aliases=["test-telegram"], help="probna obavijest")
+    t.set_defaults(fn=test_notify)
     args = p.parse_args()
     sys.exit(args.fn(args))
