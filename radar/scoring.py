@@ -53,15 +53,26 @@ class Scorer:
         gate = wl.get("news_gate") or {}
         self.gate_sale = [Phrase(a) for a in str(gate.get("sale", "")).split("|") if a.strip()]
         self.gate_event = [Phrase(a) for a in str(gate.get("event", "")).split("|") if a.strip()]
+        self.gate_announce = [Phrase(a) for a in str(gate.get("announce", "")).split("|") if a.strip()]
 
     def _news_gate(self, e: Event, toks: list[str], total: int) -> int:
-        """Vijest bez spomena karata/prodaje ne ide odmah (tracevi, intervjui...)."""
-        if not self.gate_sale or any(p.found_in(toks, prefixes(toks)) for p in self.gate_sale):
+        """Propusta vijesti o kartama i najave dogadjaja (za bilo koga); tracevi/intervjui -> 0."""
+        pre = prefixes(toks)
+        has = lambda phrases: any(p.found_in(toks, pre) for p in phrases)  # noqa: E731
+        # dogadjaj = rijec poput "koncert/stand up/bend" ILI poznato ime / dvorana s liste
+        is_event = has(self.gate_event) or bool({"artist", "team", "venue"} & set(e.extra.get("matched", [])))
+        e.extra["is_event"] = is_event
+        if not self.gate_sale or has(self.gate_sale):
+            e.extra["news_type"] = "karte"
             return total
-        if self.gate_event and any(p.found_in(toks) for p in self.gate_event) and e.extra.get("labels"):
-            e.reasons.append("bez spomena karata → samo sažetak")
+        if is_event and has(self.gate_announce):
+            e.extra["news_type"] = "najava"
+            return total
+        if is_event and e.extra.get("labels") and not e.extra.get("neg"):
+            e.extra["news_type"] = "spomen"
+            e.reasons.append("bez najave/karata → samo sažetak")
             return min(total, self.digest)
-        e.reasons.append("nije o kartama")
+        e.reasons.append("nije najava ni o kartama")
         return 0
 
     def score(self, e: Event) -> Event:
@@ -72,6 +83,8 @@ class Scorer:
             if any(p.found_in(toks, pre) for p in r.phrases):
                 if r.group == "keyword":
                     total += r.weight
+                    if r.weight < 0:
+                        e.extra["neg"] = True
                     reasons.append(f"{r.label}{r.weight:+d}")
                 else:
                     # unutar grupe broji samo najjacu (Arena Zagreb + Zagreb ne zbrajamo)

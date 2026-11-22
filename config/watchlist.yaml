@@ -189,6 +189,143 @@ artists:
       - "U2"
       - "Kanye West"
       - "Gabriel Iglesias"
+  komicari:
+    weight: 55
+    list:
+      - "Ricky Gervais"
+      - "Jimmy Carr"
+      - "Bill Burr"
+      - "Louis C.K.|Louis CK"
+      - "Dave Chappelle"
+      - "Kevin Hart"
+      - "Trevor Noah"
+      - "Jim Jefferies"
+      - "Russell Peters"
+      - "Sebastian Maniscalco"
+      - "Tom Segura"
+      - "Theo Von"
+      - "Andrew Schulz"
+      - "Daniel Sloss"
+      - "Jerry Seinfeld"
+      - "Zenomrzac"
+      - "Nenad Baric"
+      - "Marko Stepanovic"
+      - "Nemanja Cvijetic"
+      - "Tarik Filipovic"
+      - "Enis Beslagic"
+      - "Ivan Saric"
+  vise_stranih:
+    weight: 60
+    list:
+      - "Rod Stewart"
+      - "Eric Clapton"
+      - "Laura Pausini"
+      - "Il Volo"
+      - "Ludovico Einaudi"
+      - "Alan Walker"
+      - "Lost Frequencies"
+      - "Thirty Seconds to Mars"
+      - "Sum 41"
+      - "The Offspring"
+      - "Bring Me The Horizon"
+      - "Sabaton"
+      - "Nightwish"
+      - "Within Temptation"
+      - "Parov Stelar"
+      - "Placebo"
+      - "Interpol"
+      - "Pendulum"
+      - "Robin Schulz"
+      - "Peggy Gou"
+      - "Amelie Lens"
+      - "Charlotte de Witte"
+      - "Boris Brejcha"
+      - "Solomun"
+      - "Black Coffee"
+      - "Dimitri Vegas"
+      - "Hardwell"
+      - "Steve Aoki"
+      - "Marshmello"
+      - "Sean Paul"
+      - "Pitbull"
+      - "Jennifer Lopez"
+      - "Enrique Iglesias"
+      - "Ricky Martin"
+      - "Kylie Minogue"
+      - "Tom Jones"
+      - "Zucchero"
+      - "Tiziano Ferro"
+      - "Marco Mengoni"
+      - "Gipsy Kings"
+      - "Kraftwerk"
+      - "Jean-Michel Jarre"
+      - "Yanni"
+      - "Lana Del Rey"
+      - "Harry Styles"
+      - "Ariana Grande"
+      - "Doja Cat"
+      - "Drake"
+      - "Calvin Harris"
+      - "Swedish House Mafia"
+      - "Bastille"
+      - "OneRepublic"
+      - "Maroon 5"
+      - "Queens of the Stone Age"
+      - "Pearl Jam"
+      - "Judas Priest"
+      - "Megadeth"
+      - "Manowar"
+  vise_regionalnih:
+    weight: 55
+    list:
+      - "Zeljko Bebek"
+      - "Halid Muslimovic"
+      - "Hari Varesanovic"
+      - "Neda Ukraden"
+      - "Ana Nikolic"
+      - "Seka Aleksic"
+      - "Indira Radic"
+      - "Mira Skoric"
+      - "Sako Polumenta"
+      - "Tropico Band"
+      - "Milan Stankovic"
+      - "Vlado Georgiev"
+      - "Tijana Dapcevic"
+      - "Dara Bubamara"
+      - "Desingerica"
+      - "Galija"
+      - "YU grupa"
+      - "grupa Vatra"
+      - "Jinx"
+      - "TBF"
+      - "Daleka obala"
+      - "grupa Majke"
+      - "Pips Chips"
+      - "Edo Maajka"
+      - "Frenkie"
+      - "Matija Cvek"
+      - "Mia Dimsic"
+      - "Nina Kraljic"
+      - "Damir Kedzo"
+      - "Albina"
+      - "Jacques Houdek"
+      - "Drazen Zecic"
+      - "Mladen Grdovic"
+      - "Mate Bulic"
+      - "Ivan Zak"
+      - "Marko Tolja"
+      - "Neno Belan"
+      - "Kultur Shock"
+      - "Mostar Sevdah Reunion"
+      - "Perpetuum Jazzile"
+      - "Pop Design"
+      - "Klemen Slakonja"
+      - "Nika Zorjan"
+      - "Henny"
+      - "Emina Jahovic"
+      - "Jala"
+      - "Jakov Jozinovic"
+      - "Miroslav Ilic"
   festivali:
     weight: 55
     list:
@@ -287,12 +424,16 @@ keywords:
     "presale|pretprodaja|predprodaja|early bird": 15
     "pocinje prodaja|pocela prodaja|krece prodaja|prodaja pocinje|u prodaji od|prodaja ulaznica|prodaja karata|prodaja vstopnic": 15
     "ulaznice|karte|vstopnice|tickets": 5
-    "turneja|turneju|world tour|tour": 10
+    "turneja|turneju|world tour|=tour": 10
     "jedini koncert|ekskluzivno|prvi put u|prvi koncert|veliki koncert|spektakl": 10
     "stadion": 10
     "koncert|koncerta|concert": 5
     "festival": 5
-    "stand up|standup": 5
+    "stand up|standup|stendap|stand up show|komicar|komicarka|komicari|komedija": 10
+    # najava (nesto ce se tek dogoditi) - vrijedi za BILO KOJEG izvodjaca, ne samo za listu
+    "dolazi|stize|stizu|prihaja|najavio|najavila|najavili|najava|najavljen|najavljena|odrzat ce|odrzace|odrzati|nastupit ce|nastupice|nastupa u|vraca se|vracaju se|povratak|nova turneja|regionalna turneja|svjetska turneja|svetska turneja|evropska turneja|europska turneja|world tour|tour 2027|prvi put u": 10
+    "2027|2028": 5
+    "zagreb|beograd|belgrade|sarajevo|ljubljana|split|novi sad|=nis|banja luka|mostar|tuzla|zenica|rijeka|osijek|zadar|pula|maribor|podgorica|budva|kragujevac|subotica": 5
   negative:
     "za djecu|za decu|za otroke|djecja predstava|decja predstava|djeda mraz|deda mraz|bozicek": -30
     "radionica|radionice|delavnica|workshop": -40
@@ -304,14 +445,22 @@ keywords:
     "clanstvo|clanarina|sezonska|sezonska ulaznica|paketna vstopnica|abonma|abonman": -40
     "preminuo|preminula|umro|umrla|sahrana": -60
     "tribute|tribjut|cover band|kaver bend|kao nekad": -60
+    # izvjestaj s vec odrzanog koncerta (nije najava)
+    "zapalio|zapalila|zapalili|odusevio|odusevila|odusevili|odrzao koncert|odrzala koncert|odrzali koncert|odrzan|sinoc|sinocnji|snimak|snimci|fotogalerija|galerija|recenzija|review|rasplakala|rasplakao": -30
+    # tracevi / privatni zivot
+    "razvod|trudna|trudnoca|vjencanje|vencanje|svadba|bolnica|uhapsen|uhicen|sud|tuzba|policija|skandal|afera|plastika|bikini|kupaci|aerodrom|poljubac|ljubavnik|ljubavnica|bivsi|bivsa": -40
     # koncerti dijaspore / van regije
     "=bec|=becu|=beca|vienna|wien|sofija|sofiji|minhen|munchen|frankfurt|cirih|zurich|stutgart|stuttgart|cikago|chicago|toronto|melburn|sidnej|pariz|london|berlin|bazel|hamburg|dortmund|stokholm|malme|oslo|amsterdam|njujork|new york|skoplje|skopje|budimpesta|budapest|temisvar|grac|graz|klagenfurt|celovec|beljak|linz|salzburg": -40
 
     # Eventim HR/SI prodaje i evente u Austriji/Njemackoj
     "worthersee|ostbucht|burg clam|gasometer|stadthalle|hochosterwitz|seebuhne|kufstein|innsbruck|osterreich|austria|deutschland|schloss|festspiele|wiener": -60
 
-# Vijesti (portali, Google News) idu ODMAH samo ako spominju karte/prodaju.
-# Ako spominju samo koncert/nastup + izvodjaca s liste -> idu u sazetak. Inace se ignoriraju.
+# Vijest prolazi ako:
+#  - spominje karte/prodaju (sale), ILI
+#  - je NAJAVA dogadjaja (event + announce), za bilo kojeg izvodjaca/komicara, ILI
+#  - spominje dogadjaj + nekoga s liste (tada samo u sazetak).
+# Ostalo (tracevi, intervjui...) se ignorira.
 news_gate:
-  sale: "ulaznice|ulaznica|karte|karata|kartama|vstopnice|vstopnic|prodaja|prodaje|presale|pretprodaja|predprodaja|rasprodan|rasprodano|razprodano|sold out|dodatni koncert|dodatni termin|novi termin|turneja|turneju|tour|tickets|on sale"
-  event: "koncert|nastup|festival|utakmica|derbi|spektakl|stand up"
+  sale: "ulaznice|ulaznica|karte|karata|kartama|vstopnice|vstopnic|prodaja|prodaje|presale|pretprodaja|predprodaja|rasprodan|rasprodano|razprodano|sold out|dodatni koncert|dodatni termin|novi termin|turneja|turneju|=tour|tickets|on sale"
+  event: "koncert|koncerta|koncertom|koncerte|nastup|nastupa|nastop|festival|utakmica|derbi|spektakl|stand up|standup|stendap|komicar|komedija|show|turneja|turneju|=tour|predstava|mjuzikl|musical|bend|rockeri|reper|pjevac|pevac|pjevacica|pevacica|glazbenik|muzicar|izvodjac|orkestar|klapa|dj"
+  announce: "dolazi|stize|stizu|prihaja|najavio|najavila|najavili|najava|najavljen|najavljena|odrzat ce|odrzace|odrzati|nastupit ce|nastupice|nastupa u|vraca se|vracaju se|povratak|nova turneja|regionalna turneja|svjetska turneja|svetska turneja|world tour|prvi put u|2027|2028"

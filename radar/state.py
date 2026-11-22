@@ -18,7 +18,8 @@ class State:
         self.digest_queue: list = d.get("digest_queue", [])
         self.reminders: dict = d.get("reminders", {})
         self.watch: dict = d.get("watch", {})
-        self.recent: list = d.get("recent", [])  # [{"t": naslov, "kind": .., "ts": ..}]
+        self.recent: list = d.get("recent", [])
+        self.news: dict = d.get("news", {})  # najave iz medija za web stranicu (7 dana)  # [{"t": naslov, "kind": .., "ts": ..}]
         self.last_digest: str = d.get("last_digest", "")
         self.runs: int = d.get("runs", 0)
         self.started: bool = d.get("started", False)
@@ -38,7 +39,7 @@ class State:
         tmp = self.path.with_suffix(".tmp")
         tmp.write_text(json.dumps({
             "sources": self.sources, "digest_queue": self.digest_queue, "reminders": self.reminders,
-            "watch": self.watch, "recent": self.recent, "last_digest": self.last_digest,
+            "watch": self.watch, "recent": self.recent, "news": self.news, "last_digest": self.last_digest,
             "runs": self.runs, "started": self.started,
         }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
         os.replace(tmp, self.path)
@@ -52,4 +53,5 @@ class State:
             s["seen"] = {k: v for k, v in s.get("seen", {}).items() if now - v < SEEN_TTL_DAYS * DAY}
             s["first"] = {k: v for k, v in s.get("first", {}).items() if now - v < 14 * DAY}
         self.recent = [r for r in self.recent if now - r["ts"] < 7 * DAY]
+        self.news = {k: v for k, v in self.news.items() if now - v.get("ts", now) < 7 * DAY}
         self.digest_queue = [e for e in self.digest_queue if now - e.get("_queued", now) < 3 * DAY][-500:]

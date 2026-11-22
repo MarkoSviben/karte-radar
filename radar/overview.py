@@ -143,7 +143,7 @@ def ticket_state(e: Event, now: datetime) -> str:
 
 
 def to_json(reps: list[Event], now: datetime, instant: int, sources: dict | None = None,
-            details_at: str = "") -> dict:
+            details_at: str = "", news: list | None = None) -> dict:
     """Podaci za web stranicu (site/index.html). Bez razloga bodovanja (stranica je javna)."""
     out = []
     for e in reps:
@@ -163,7 +163,61 @@ def to_json(reps: list[Event], now: datetime, instant: int, sources: dict | None
                    if e.extra.get("checked") else "",
         })
     return {"updated": now.isoformat(timespec="minutes"), "big": instant, "events": out,
-            "sources": sources or {}, "details_at": details_at}
+            "sources": sources or {}, "details_at": details_at, "news": news or []}
+
+
+COMEDY = ("stand up", "standup", "stendap", "komicar", "komicark", "komedij")
+
+
+def update_news(store: dict, results: dict, scorer: Scorer, now: datetime) -> None:
+    """Spremi najave iz medija (portali, Google News) iz ovog runa u `store` (pamti se 7 dana)."""
+    ts = now.timestamp()
+    for r in results.values():
+        for e in r.get("events") or []:
+            if e.kind != "news":
+                continue
+            scorer.score(e)
+            nt = e.extra.get("news_type")
+            if e.score < scorer.digest or nt not in ("karte", "najava", "spomen"):
+                continue
+            if nt == "spomen" and e.score < scorer.instant:
+                continue  # samo spomen poznatog imena (cesto trac) -> na stranicu samo ako je bas vazno
+            key = e.url[-200:]
+            old = store.get(key, {})
+            store[key] = {
+                "t": e.title, "u": e.url, "via": e.extra.get("via") or e.source, "cc": e.country,
+                "pub": e.extra.get("published") or old.get("pub") or now.isoformat(timespec="minutes"),
+                "sc": e.score, "lab": e.extra.get("labels", []), "type": e.extra["news_type"],
+                "comedy": any(c in norm(e.title + " " + e.summary[:300]) for c in COMEDY),
+                "ts": old.get("ts", ts),
+            }
+
+
+def news_json(store: dict, min_mention: int = 50) -> list[dict]:
+    """Najave za stranicu: ista vijest s vise portala -> jedna stavka s popisom izvora.
+    Puki spomen poznatog imena (bez najave/karata) samo ako ima >= min_mention bodova."""
+    items = sorted((v for v in store.values() if v["type"] != "spomen" or v["sc"] >= min_mention),
+                   key=lambda x: x["pub"], reverse=True)
+    out: list[dict] = []
+    index: dict[str, list[dict]] = {}
+    for it in items:
+        keys = key_tokens(it["t"], 3)
+        cands = {id(o): o for k in keys for o in index.get(k, [])}.values()
+        dup = next((o for o in cands if similar(o["t"], it["t"]) >= 0.7), None)
+        if dup:
+            if it["via"] not in dup["via"]:
+                dup["via"].append(it["via"])
+            dup["sc"] = max(dup["sc"], it["sc"])
+            dup["lab"] = sorted(set(dup["lab"]) | set(it["lab"]))
+            if it["type"] == "karte":
+                dup["type"] = "karte"
+            continue
+        o = {"t": it["t"], "u": it["u"], "via": [it["via"]], "pub": it["pub"], "sc": it["sc"],
+             "lab": list(it["lab"]), "type": it["type"], "comedy": it["comedy"], "cc": it.get("cc", "")}
+        out.append(o)
+        for k in keys:
+            index.setdefault(k, []).append(o)
+    return out
 
 
 def build(results: dict, scorer: Scorer, countries: set[str], now: datetime,

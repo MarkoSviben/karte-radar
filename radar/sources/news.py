@@ -22,9 +22,15 @@ MAX_AGE_DAYS = 4
 
 # clanak mora spominjati nesto vezano uz karte/koncerte da bi uopce usao u obradu
 TICKET_RE = re.compile(
-    r"\b(ulaznic\w*|karte|karata|kartama|vstopnic\w*|koncert\w*|turnej\w*|rasprodan\w*|razprodan\w*|"
-    r"presale|pretprodaj\w*|predprodaj\w*|festival\w*|tickets?|nastup\w*|spektak\w*)\b"
+    r"\b(ulaznic\w*|karte|karata|kartama|vstopnic\w*|koncert\w*|turnej\w*|turnej|tour|rasprodan\w*|razprodan\w*|"
+    r"presale|pretprodaj\w*|predprodaj\w*|festival\w*|tickets?|nastop\w*|nastup\w*|spektak\w*|"
+    r"stand ?up\w*|stendap\w*|komicar\w*|komedij\w*|show)\b"
 )
+
+
+def _published(entry) -> str:
+    t = entry.get("published_parsed") or entry.get("updated_parsed")
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", t) if t else ""
 _LISTING_RE = re.compile(r"^(?:Ulaznice za|Tickets for|Tickets für|Vstopnice za|Karte za|Ulaznice)\s+(.+)$", re.I)
 _TAG_RE = re.compile(r"<[^>]+>")
 
@@ -106,7 +112,7 @@ def fetch_google_news(ctx: Context, cfg: dict) -> list[Event]:
             else:
                 uid = "N:" + (en.get("id") or en.get("link", ""))[-120:]
                 ev = Event(source=cfg["_name"], uid=uid, title=head, url=en.get("link", ""), kind="news",
-                           summary=src, extra={"via": src, "query": q[0]})
+                           summary=src, extra={"via": src, "query": q[0], "published": _published(en)})
             out.setdefault(ev.uid, ev)
     if errors == len(queries):
         raise RuntimeError("sve Google News pretrage su pale")
@@ -142,7 +148,9 @@ def fetch_rss(ctx: Context, cfg: dict) -> list[Event]:
                 continue
             uid = (en.get("id") or en.get("link", ""))[-150:]
             out.setdefault(uid, Event(source=f"{cfg['_name']}/{fname}", uid=uid, title=title,
-                                      url=en.get("link", ""), kind="news", summary=summary, country=country))
+                                      url=en.get("link", ""), kind="news", summary=summary, country=country,
+                                      extra={"via": fcfg.get("label", fname) if isinstance(fcfg, dict) else fname,
+                                             "published": _published(en)}))
     if feeds and ok == 0:
         raise RuntimeError("niti jedan RSS feed nije dostupan")
     return list(out.values())

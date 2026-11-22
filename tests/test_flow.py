@@ -143,3 +143,27 @@ def test_overview(tmp_path):
     assert "Severina" in md and "(+1 termina)" in md and "u prodaji" in md
     assert "Coldplay" not in md and "Mali koncert" not in md
     assert "## 🆕 Novo" in md and "🆕 [Aca Lukas]" in md
+
+
+def test_config_change_rebaselines_silently(tmp_path):
+    run, nt = make_run(tmp_path)
+    r1 = res([ev("1", "Stari")]); r1["cfg"]["queries"] = ["a"]
+    run.collect_new({"tickets_rs": r1})
+    run2, _ = make_run(tmp_path, st=run.st)
+    r2 = res([ev("1", "Stari"), ev("2", "Severina", venue="Arena Zagreb")]); r2["cfg"]["queries"] = ["a", "b"]
+    assert run2.collect_new({"tickets_rs": r2}) == []  # nova konfiguracija -> tiho zapamti
+    run3, _ = make_run(tmp_path, st=run.st)
+    r3 = res([ev("1", "Stari"), ev("2", "Severina"), ev("3", "Novi")]); r3["cfg"]["queries"] = ["a", "b"]
+    assert [e.uid for e in run3.collect_new({"tickets_rs": r3})] == ["3"]
+
+
+def test_news_announcements_for_anyone():
+    s = Scorer(WL)
+    unknown = s.score(Event(source="t", uid="1", title="Nepoznati bend najavio koncert u Zagrebu za 2027.", url="", kind="news"))
+    assert unknown.extra["news_type"] == "najava" and unknown.score >= s.digest
+    comedian = s.score(Event(source="t", uid="2", title="Bill Burr stiže u Beograd", url="", kind="news"))
+    assert comedian.score >= s.instant
+    report = s.score(Event(source="t", uid="3", title="Aca Lukas zapalio Arenu, pogledajte snimak", url="", kind="news"))
+    gossip = s.score(Event(source="t", uid="4", title="Seka Aleksić se razvodi: skandal na aerodromu", url="", kind="news"))
+    tourism = s.score(Event(source="t", uid="5", title="Ljubljana named 2027 European capital of tourism", url="", kind="news"))
+    assert report.score == 0 and gossip.score == 0 and tourism.extra.get("news_type") != "karte"

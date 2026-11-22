@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import concurrent.futures as cf
 import json
 import os
@@ -143,6 +144,12 @@ class Run:
             if s.get("initialized"):
                 for e in fresh:
                     first[e.uid] = self.ts
+            # promijenjena konfiguracija izvora (npr. nove pretrage) -> tiho ponovno zapamti, bez naleta obavijesti
+            chash = hashlib.sha1(json.dumps({k: v for k, v in res["cfg"].items() if not k.startswith("_")},
+                                            sort_keys=True, ensure_ascii=False).encode()).hexdigest()[:12]
+            if s.get("initialized") and s.get("cfg_hash") != chash and not self.show_all:
+                s["initialized"] = False
+            s["cfg_hash"] = chash
             if not s.get("initialized") and not self.show_all:
                 self._track_changes(s, events, {e.uid for e in events})  # samo zapamti, bez obavijesti
                 s["initialized"] = True
@@ -400,7 +407,9 @@ def write_overview(st: State, wl: dict, results: dict, now: datetime, path: Path
         st.sources.setdefault("_meta", {})["details_at"] = now.isoformat(timespec="minutes")
     srcs = {n: {"ok": not s.get("fail"), "n": s.get("last_count", 0)} for n, s in st.sources.items()
             if not n.startswith("_") and n in results}
-    data = overview.to_json(reps, now, scorer.instant, srcs, st.sources.get("_meta", {}).get("details_at", ""))
+    overview.update_news(st.news, results, scorer, now)
+    data = overview.to_json(reps, now, scorer.instant, srcs, st.sources.get("_meta", {}).get("details_at", ""),
+                            overview.news_json(st.news, scorer.instant))
     if path:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(md, encoding="utf-8")

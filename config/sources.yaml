@@ -78,22 +78,67 @@ google_news:
     - {q: "koncert vstopnice when:2d", lang: sl, country: SI}
     - {q: "Stožice koncert when:3d", lang: sl, country: SI}
     - {q: "razprodano koncert when:3d", lang: sl, country: SI}
+    # opce najave (bilo koji izvodjac / komicar), ne samo watchlista
+    - "dolazi u Zagreb koncert when:3d"
+    - "dolazi u Beograd koncert when:3d"
+    - "dolazi u Sarajevo koncert when:3d"
+    - "najavio koncert when:3d"
+    - "najavila koncert when:3d"
+    - "održat će koncert when:3d"
+    - "održaće koncert when:3d"
+    - "nova turneja when:3d"
+    - "regionalna turneja when:3d"
+    - "veliki koncert 2027 when:3d"
+    - "koncert u Areni when:3d"
+    - "stand up turneja when:3d"
+    - "stand-up nastup Zagreb OR Beograd OR Sarajevo OR Novi Sad when:3d"
+    - "komičar nastup when:3d"
+    - "prvi put u Hrvatskoj OR Srbiji OR Sloveniji koncert when:3d"
+    - {q: "prihaja v Ljubljano koncert when:3d", lang: sl, country: SI}
+    - {q: "stand up Ljubljana when:3d", lang: sl, country: SI}
+    - {q: "tour 2027 Zagreb OR Belgrade OR Ljubljana OR Sarajevo when:3d", lang: en, country: US}
 
-# RSS portala: prolaze samo clanci koji spominju karte/koncerte/turneje
+# RSS portala: prolaze samo clanci koji spominju koncerte, turneje, stand-up, karte...
 portali:
   type: rss
   feeds:
-    index: {url: "https://www.index.hr/rss", country: HR}
-    24sata: {url: "https://www.24sata.hr/feeds/aktualno.xml", country: HR}
-    vecernji: {url: "https://www.vecernji.hr/feeds/latest", country: HR}
-    tportal: {url: "https://www.tportal.hr/rss-najnovije.xml", country: HR}
-    blic: {url: "https://www.blic.rs/rss/danasnje-vesti", country: RS}
-    kurir: {url: "https://www.kurir.rs/rss", country: RS}
-    telegraf: {url: "https://www.telegraf.rs/rss", country: RS}
-    klix: {url: "https://www.klix.ba/rss", country: BA}
-    avaz: {url: "https://avaz.ba/rss", country: BA}
-    24ur: {url: "https://www.24ur.com/rss", country: SI}
-    rtvslo: {url: "https://img.rtvslo.si/feeds/00.xml", country: SI}
+    index: {url: "https://www.index.hr/rss", country: HR, label: Index}
+    index_magazin: {url: "https://www.index.hr/rss/magazin", country: HR, label: Index Magazin}
+    24sata: {url: "https://www.24sata.hr/feeds/aktualno.xml", country: HR, label: 24sata}
+    24sata_show: {url: "https://www.24sata.hr/feeds/show.xml", country: HR, label: 24sata Show}
+    jutarnji: {url: "https://www.jutarnji.hr/feed", country: HR, label: Jutarnji}
+    vecernji: {url: "https://www.vecernji.hr/feeds/latest", country: HR, label: Večernji}
+    tportal: {url: "https://www.tportal.hr/rss-najnovije.xml", country: HR, label: tportal}
+    slobodna: {url: "https://www.slobodnadalmacija.hr/feed", country: HR, label: Slobodna Dalmacija}
+    novilist: {url: "https://www.novilist.hr/feed/", country: HR, label: Novi list}
+    n1hr: {url: "https://www.n1info.hr/feed/", country: HR, label: N1 HR}
+    blic: {url: "https://www.blic.rs/rss/danasnje-vesti", country: RS, label: Blic}
+    blic_zabava: {url: "https://www.blic.rs/rss/Zabava", country: RS, label: Blic Zabava}
+    kurir: {url: "https://www.kurir.rs/rss", country: RS, label: Kurir}
+    kurir_stars: {url: "https://www.kurir.rs/rss/stars", country: RS, label: Kurir Stars}
+    telegraf: {url: "https://www.telegraf.rs/rss", country: RS, label: Telegraf}
+    novars: {url: "https://www.nova.rs/feed/", country: RS, label: Nova.rs}
+    n1rs: {url: "https://n1info.rs/feed/", country: RS, label: N1 RS}
+    klix: {url: "https://www.klix.ba/rss", country: BA, label: Klix}
+    avaz: {url: "https://avaz.ba/rss", country: BA, label: Avaz}
+    radiosarajevo: {url: "https://www.radiosarajevo.ba/rss", country: BA, label: Radio Sarajevo}
+    vijesti: {url: "https://www.vijesti.me/rss", country: ME, label: Vijesti.me}
+    24ur: {url: "https://www.24ur.com/rss", country: SI, label: 24ur}
+    rtvslo: {url: "https://img.rtvslo.si/feeds/00.xml", country: SI, label: RTV SLO}
+    zurnal24: {url: "https://www.zurnal24.si/feeds/latest", country: SI, label: Žurnal24}
+    delo: {url: "https://www.delo.si/rss", country: SI, label: Delo}
+
+# Glazbeni i zabavni portali: najave koncerata su im glavni sadrzaj
+glazbeni_portali:
+  type: rss
+  feeds:
+    ziher: {url: "https://www.ziher.hr/feed/", country: HR, label: Ziher}
+    muzika: {url: "https://www.muzika.hr/feed/", country: HR, label: Muzika.hr}
+    glazba: {url: "https://www.glazba.hr/feed/", country: HR, label: Glazba.hr}
+    soundreport: {url: "https://www.sound-report.com/feed/", country: HR, label: Sound Report}
+    ravnododna: {url: "https://ravnododna.com/feed/", country: HR, label: Ravno do dna}
+    balkanrock: {url: "https://balkanrock.com/feed/", country: RS, label: Balkanrock}
+    headliner: {url: "https://www.headliner.rs/feed/", country: RS, label: Headliner}
 
 # Bandsintown: turneje stranih izvodjaca s watchliste u regiji.
 # Treba GitHub secret BANDSINTOWN_APP_ID (inace se preskace).

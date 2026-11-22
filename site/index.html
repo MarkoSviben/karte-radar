@@ -103,6 +103,26 @@ h2 small{font:400 13px "IBM Plex Sans",sans-serif;color:var(--muted)}
 .soon-card .what{font-weight:600;margin-top:6px;line-height:1.3}
 .soon-card .where{font-size:13px;color:var(--muted)}
 
+/* prekidac pogleda */
+.tabs{display:flex;gap:4px;margin-bottom:10px;border-bottom:1px solid var(--line)}
+.tab{appearance:none;background:none;border:0;border-bottom:3px solid transparent;margin-bottom:-1px;padding:6px 4px 8px;margin-right:14px;
+  font:700 17px/1.2 "Bricolage Grotesque",sans-serif;color:var(--muted);cursor:pointer}
+.tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--stamp)}
+.tab .n{font:600 13px "IBM Plex Sans",sans-serif;color:var(--muted)}
+body[data-view="events"] .news-only, body[data-view="news"] .ev-only{display:none}
+
+/* najave iz medija: izrezak iz novina */
+.clip{display:grid;grid-template-columns:58px 1fr;gap:12px;background:var(--ticket);border:1px solid var(--line);border-left:4px solid var(--line);
+  border-radius:10px;padding:12px 14px;text-decoration:none}
+.clip:hover{border-color:var(--muted)}
+.clip.t-najava{border-left-color:var(--ann)} .clip.t-karte{border-left-color:var(--soon)}
+.clip .time{font:700 15px/1.2 "Bricolage Grotesque",sans-serif;color:var(--muted);padding-top:2px}
+.clip .h{font:600 16px/1.35 "IBM Plex Sans",sans-serif;overflow-wrap:anywhere}
+.clip .m{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:7px;font-size:12.5px;color:var(--muted)}
+.who{background:var(--stamp-soft);color:var(--stamp)}
+.k-najava{background:var(--ann-soft);color:var(--ann)} .k-karte{background:var(--soon-soft);color:var(--soon)} .k-spomen{background:var(--off-soft);color:var(--muted)}
+.sw.k-najava{background:var(--ann)} .sw.k-karte{background:var(--soon)} .sw.k-comedy{background:var(--stamp)}
+
 .legend{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.45}
 .empty,.err{background:var(--ticket);border:1px dashed var(--line);border-radius:var(--radius);padding:28px 18px;text-align:center;color:var(--muted);margin-top:24px}
 .btn{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font:500 14px "IBM Plex Sans",sans-serif;cursor:pointer;margin-top:12px}
@@ -120,7 +140,7 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
 @media (prefers-reduced-motion:no-preference){ .tix{transition:border-color .15s} }
 </style>
 </head>
-<body>
+<body data-view="events">
 <header class="wrap">
   <h1>Karte radar<span class="dot">.</span></h1>
   <p class="sub" id="sub">Učitavam evente…</p>
@@ -129,17 +149,22 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
 
 <div class="filters" role="search">
   <div class="wrap">
-    <div class="frow">
-      <input class="search" id="q" type="search" placeholder="Traži izvođača, dvoranu, grad…" aria-label="Pretraga">
-      <select id="month" aria-label="Mjesec događaja"><option value="">Svi mjeseci</option></select>
-      <select id="cc" aria-label="Država"><option value="">Sve države</option></select>
+    <div class="tabs" role="tablist" aria-label="Pogled">
+      <button class="tab" role="tab" id="tab-events" data-view="events" aria-selected="true">Eventi</button>
+      <button class="tab" role="tab" id="tab-news" data-view="news" aria-selected="false">Najave iz medija <span class="n" id="newsN"></span></button>
     </div>
     <div class="frow">
-      <div class="chips" id="ks" role="group" aria-label="Karte"></div>
+      <input class="search" id="q" type="search" placeholder="Traži izvođača, komičara, dvoranu, grad…" aria-label="Pretraga">
+      <select id="month" class="ev-only" aria-label="Mjesec događaja"><option value="">Svi mjeseci</option></select>
+      <select id="cc" class="ev-only" aria-label="Država"><option value="">Sve države</option></select>
     </div>
     <div class="frow">
-      <label class="toggle"><input type="checkbox" id="big" checked> Samo veliki</label>
-      <label class="toggle"><input type="checkbox" id="onlynew"> Samo novo (7 dana)</label>
+      <div class="chips ev-only" id="ks" role="group" aria-label="Karte"></div>
+      <div class="chips news-only" id="nt" role="group" aria-label="Vrsta najave"></div>
+    </div>
+    <div class="frow">
+      <label class="toggle"><input type="checkbox" id="big" checked> <span id="bigLabel">Samo veliki</span></label>
+      <label class="toggle ev-only"><input type="checkbox" id="onlynew"> Samo novo (7 dana)</label>
       <span class="count" id="count"></span>
     </div>
   </div>
@@ -150,6 +175,8 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
   <b>Kako čitati:</b> <i>Događaj</i> je kad se koncert ili utakmica održava. <i>Karte</i> kaže jesu li ulaznice već u prodaji.
   „Još nisu izašle“ znači da je poznat datum početka prodaje u budućnosti, ili da je izvođač tek najavljen.
   „Nepoznato“ znači da je event objavljen na prodajnom mjestu, ali to mjesto ne objavljuje status karata. Otvori ga i provjeri.<br>
+  <i>Najave iz medija</i> skupljaju se s glazbenih i zabavnih portala te Google Newsa za bilo kojeg izvođača, komičara ili event u regiji, i čuvaju se 7 dana.
+  Ime označeno bojom je s tvoje liste.<br>
   Radar provjerava sve izvore svakih 30 minuta (noću svaki sat), a ova stranica sama povlači nove podatke dok je otvorena.
 </footer>
 
@@ -172,7 +199,9 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
 
   let DATA = null, BIG = 50;
   const KEY = "karte-radar-filters-v2";
-  const DEF = {q:"", month:"", ks:"", cc:"", big:true, onlynew:false};
+  const DEF = {q:"", month:"", ks:"", cc:"", big:true, onlynew:false, view:"events", nt:"", bigNews:false};
+  const NT = [["", "Sve"], ["najava", "Najave"], ["karte", "Karte i prodaja"], ["comedy", "Stand-up"]];
+  const NT_LABEL = {najava:"Najava", karte:"Karte / prodaja", spomen:"Spomen"};
   const st = {...DEF};
   try { Object.assign(st, JSON.parse(localStorage.getItem(KEY) || "{}")); } catch (e) {}
   const url = new URLSearchParams(location.search);
@@ -267,7 +296,73 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
     }).join("");
   }
 
+  // ---------- najave iz medija ----------
+  const fold = s => String(s||"").toLocaleLowerCase("hr").normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/đ/g,"d");
+  function newsMatches(n, ignoreNt){
+    if (st.bigNews && n.sc < BIG) return false;
+    if (!ignoreNt && st.nt){
+      if (st.nt === "comedy"){ if (!n.comedy) return false; }
+      else if (n.type !== st.nt) return false;
+    }
+    if (st.q){
+      const hay = fold(n.t + " " + n.lab.join(" ") + " " + n.via.join(" "));
+      if (!fold(st.q).split(/\s+/).every(w => hay.includes(w))) return false;
+    }
+    return true;
+  }
+  function dayLabel(d){
+    const t = now(); const a = new Date(t.getFullYear(), t.getMonth(), t.getDate());
+    const b = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    const diff = Math.round((a - b) / 864e5);
+    if (diff === 0) return "Danas";
+    if (diff === 1) return "Jučer";
+    return `${WD_LONG[d.getDay()][0].toUpperCase() + WD_LONG[d.getDay()].slice(1)}, ${d.getDate()}.${d.getMonth()+1}.`;
+  }
+  function clip(n){
+    const d = new Date(n.pub);
+    return `<a class="clip t-${n.type}" href="${esc(n.u)}" target="_blank" rel="noopener">
+      <div class="time">${pad(d.getHours())}:${pad(d.getMinutes())}</div>
+      <div><div class="h">${esc(n.t)}</div>
+        <div class="m">
+          <span class="pill k-${n.type}">${NT_LABEL[n.type] || n.type}</span>
+          ${n.comedy ? '<span class="pill who">Stand-up</span>' : ""}
+          ${n.lab.map(l => `<span class="pill who">${esc(l)}</span>`).join("")}
+          <span>${esc(n.via.join(", "))}</span>
+          <span class="score"><b>${n.sc}</b> bod.</span>
+        </div></div></a>`;
+  }
+  function renderNews(){
+    const all = DATA.news || [];
+    const base = all.filter(n => newsMatches(n, true));
+    $("nt").innerHTML = NT.map(([k,l]) => {
+      const c = !k ? base.length : base.filter(n => k === "comedy" ? n.comedy : n.type === k).length;
+      if (k && !c && st.nt !== k) return "";
+      return `<button class="chip" type="button" data-nt="${k}" aria-pressed="${st.nt===k}">${k ? `<span class="sw k-${k}"></span>` : ""}${l} <span class="n">${c}</span></button>`;
+    }).join("");
+    const items = all.filter(n => newsMatches(n, false));
+    $("count").textContent = `prikazano ${items.length} od ${all.length}`;
+    let html = "", cur = "";
+    for (const n of items){
+      const lab = dayLabel(new Date(n.pub));
+      if (lab !== cur){ if (cur) html += `</div>`; cur = lab;
+        html += `<h2>${lab} <small>${items.filter(x => dayLabel(new Date(x.pub)) === lab).length}</small></h2><div class="list">`; }
+      html += clip(n);
+    }
+    if (cur) html += `</div>`;
+    if (!all.length) html = `<div class="empty">Još nema najava. Radar ih skuplja s 32 portala i 38 Google News pretraga; prve se pojave unutar pola sata.</div>`;
+    else if (!items.length) html = `<div class="empty">Nijedna najava ne odgovara filterima.<br><button class="btn" id="reset">Prikaži sve</button></div>`;
+    $("main").innerHTML = html;
+    const r = $("reset"); if (r) r.onclick = () => { st.q = ""; st.nt = ""; st.bigNews = false; syncInputs(); save(); render(); };
+  }
+
   function render(){
+    document.body.dataset.view = st.view;
+    $("tab-events").setAttribute("aria-selected", String(st.view === "events"));
+    $("tab-news").setAttribute("aria-selected", String(st.view === "news"));
+    $("bigLabel").textContent = st.view === "news" ? "Samo važne" : "Samo veliki";
+    $("big").checked = st.view === "news" ? st.bigNews : st.big;
+    $("newsN").textContent = (DATA.news || []).length || "";
+    if (st.view === "news") return renderNews();
     renderChips();
     const evs = DATA.events.filter(e => matches(e, false));
     $("count").textContent = `prikazano ${evs.length} od ${DATA.events.length}`;
@@ -321,7 +416,7 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
 
   function syncInputs(){
     $("q").value = st.q; $("month").value = st.month; $("cc").value = st.cc;
-    $("big").checked = st.big; $("onlynew").checked = st.onlynew;
+    $("big").checked = st.view === "news" ? st.bigNews : st.big; $("onlynew").checked = st.onlynew;
   }
 
   function freshness(){
@@ -341,15 +436,18 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
     const nBig = DATA.events.filter(e => e.sc >= BIG).length;
     const nPending = DATA.events.filter(e => e.sc >= BIG && (e.ks === "soon" || e.ks === "ann")).length;
     $("sub").innerHTML = `<strong>${nBig}</strong> velikih evenata u HR, RS, BiH i SLO` +
-      (nPending ? ` · za <strong>${nPending}</strong> karte još nisu izašle` : "");
+      (nPending ? ` · za <strong>${nPending}</strong> karte još nisu izašle` : "") +
+      ((DATA.news || []).length ? ` · <strong>${DATA.news.length}</strong> najava iz medija u zadnjih 7 dana` : "");
   }
 
   function setupOnce(){
     $("ks").onclick = ev => { const b = ev.target.closest(".chip"); if (!b) return; st.ks = b.dataset.ks; save(); render(); };
+    $("nt").onclick = ev => { const b = ev.target.closest(".chip"); if (!b) return; st.nt = b.dataset.nt; save(); render(); };
+    document.querySelectorAll(".tab").forEach(t => t.onclick = () => { st.view = t.dataset.view; save(); render(); window.scrollTo({top:0}); });
     let t; $("q").oninput = ev => { clearTimeout(t); t = setTimeout(() => { st.q = ev.target.value.trim(); save(); render(); }, 120); };
     $("month").onchange = ev => { st.month = ev.target.value; save(); render(); };
     $("cc").onchange = ev => { st.cc = ev.target.value; save(); render(); };
-    $("big").onchange = ev => { st.big = ev.target.checked; save(); render(); };
+    $("big").onchange = ev => { if (st.view === "news") st.bigNews = ev.target.checked; else st.big = ev.target.checked; save(); render(); };
     $("onlynew").onchange = ev => { st.onlynew = ev.target.checked; save(); render(); };
   }
 
