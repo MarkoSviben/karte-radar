@@ -2,9 +2,9 @@ name: radar
 
 on:
   schedule:
-    # vremena su UTC (zimi +1h, ljeti +2h po nasem). :07 i :37 jer GitHub kasni u punim satima.
-    - cron: "7,37 5-22 * * *"   # danju svakih 30 min
-    - cron: "7 23,0-4 * * *"    # nocu svaki sat
+    # vremena su UTC (zimi +1h, ljeti +2h po nasem). :13 i :43 jer je GitHub zagusen oko punih sati.
+    - cron: "13,43 5-22 * * *"  # danju svakih 30 min
+    - cron: "13 23,0-4 * * *"   # nocu svaki sat
   workflow_dispatch:
     inputs:
       digest_now:
