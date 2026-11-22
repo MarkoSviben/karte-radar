@@ -1,0 +1,314 @@
+# =====================================================================
+#  WATCHLISTA: ovdje odlucujes sto je "veliko" i vrijedno obavijesti.
+#  Uredjujes direktno na GitHubu (olovka), promjena vrijedi od iduceg runa.
+#
+#  Kako se boduje:
+#   - svaki event dobije bodove: najjaci izvodjac + najjaci klub + najjaca
+#     dvorana + SVE kljucne rijeci + bonus po vrsti (listing/najava...)
+#   - score >= threshold_instant  -> odmah poruka na Telegram
+#   - score >= threshold_digest   -> ide u jutarnji sazetak
+#   - manje                        -> ignorira se
+#
+#  Format imena:
+#   "Ceca|Svetlana Raznatovic"   alternativna imena odvojena s |
+#   "=Tool"                      tocno podudaranje (bez padeza)
+#   {"Coldplay": 90}             vlastita tezina za jednog izvodjaca
+#  Dijakritici i cirilica nisu bitni (Đorđe = Djordje = Ђорђе),
+#  padezi se hvataju automatski (Dino Merlin = Dina Merlina).
+# =====================================================================
+
+threshold_instant: 50
+threshold_digest: 15
+
+# drzave koje te zanimaju (event u drugoj drzavi se odbacuje)
+countries: [HR, RS, BA, SI, ME]
+
+# bonus po vrsti signala
+kind_bonus:
+  listing: 10   # event se pojavio na ticketing stranici
+  artist: 15    # nova stranica izvodjaca na Eventimu (cesto prije eventa!)
+  tour: 20      # Bandsintown najava turneje u regiji
+  news: 0
+
+artists:
+  weight: 60
+  regionalni:
+    weight: 60
+    list:
+      - "Ceca|Svetlana Raznatovic"
+      - "Dino Merlin"
+      - "Thompson|Marko Perkovic Thompson"
+      - "Zdravko Colic"
+      - "Lepa Brena"
+      - "Severina"
+      - "Aca Lukas"
+      - "Sasa Matic"
+      - "Zeljko Joksimovic"
+      - "Jelena Karleusa"
+      - "Aleksandra Prijovic"
+      - "Breskvica"
+      - "Jala Brat"
+      - "Buba Corelli"
+      - "Senidah"
+      - "Grse"
+      - "Devito"
+      - "Voyage"
+      - "Nikolija"
+      - "=Rasta"
+      - "Coby"
+      - "Milica Pavlovic"
+      - "Dragana Mirkovic"
+      - "Mile Kitic"
+      - "Haris Dzinovic"
+      - "Hari Mata Hari"
+      - "Dado Polumenta"
+      - "Darko Lazic"
+      - "Sasa Kovacevic"
+      - "Tony Cetinski|Toni Cetinski"
+      - "Petar Graso"
+      - "Jelena Rozga"
+      - "Gibonni"
+      - "Mišo Kovač"
+      - "Doris Dragovic"
+      - "Miroslav Skoro"
+      - "Nina Badric"
+      - "Massimo"
+      - "Baby Lasagna"
+      - "Bajaga"
+      - "Riblja Corba"
+      - "Prljavo Kazaliste"
+      - "Parni Valjak"
+      - "Hladno Pivo"
+      - "Psihomodo Pop"
+      - "Let 3"
+      - "Zabranjeno Pusenje"
+      - "Dubioza Kolektiv"
+      - "Plavi Orkestar"
+      - "Goran Bregovic|Bijelo Dugme"
+      - "Divlje Jagode"
+      - "Kerber"
+      - "Van Gogh"
+      - "Elektricni Orgazam"
+      - "Partibrejkers"
+      - "Neverne Bebe"
+      - "Piloti|Kiki Lesendric"
+      - "Lexington"
+      - "Marija Serifovic"
+      - "Zeljko Samardzic"
+      - "Bad Copy"
+      - "S.A.R.S."
+      - "Hiljson Mandela"
+      - "Elitni Odredi"
+      - "Siddharta"
+      - "Laibach"
+      - "Magnifico"
+      - "Joker Out"
+      - "Jan Plestenjak"
+      - "Modrijani"
+      - "Dan D"
+      - "Big Foot Mama"
+      - "Vlado Kreslin"
+      - "Zoran Predin"
+      - "Nina Puslar"
+      - "grupa Magazin"
+      - "Divanhana"
+  strani:
+    weight: 70
+    list:
+      - {"Coldplay": 95}
+      - {"Ed Sheeran": 90}
+      - {"Taylor Swift": 95}
+      - {"Metallica": 90}
+      - {"Rammstein": 90}
+      - {"AC/DC|ACDC": 90}
+      - "Guns N Roses|Guns N' Roses"
+      - "Iron Maiden"
+      - "Red Hot Chili Peppers"
+      - "Imagine Dragons"
+      - "The Weeknd"
+      - "Dua Lipa"
+      - "Billie Eilish"
+      - "Bruno Mars"
+      - "Eros Ramazzotti"
+      - "Andrea Bocelli"
+      - "Sting"
+      - "Robbie Williams"
+      - "Bon Jovi"
+      - "Depeche Mode"
+      - "Pet Shop Boys"
+      - "Scorpions"
+      - "Lenny Kravitz"
+      - "Justin Timberlake"
+      - "Bruce Springsteen"
+      - "Shakira"
+      - "Linkin Park"
+      - "Green Day"
+      - "Foo Fighters"
+      - "=Muse"
+      - "Arctic Monkeys"
+      - "Travis Scott"
+      - "Eminem"
+      - "Kendrick Lamar"
+      - "Post Malone"
+      - "Rihanna"
+      - "Beyonce"
+      - "Lady Gaga"
+      - "Rolling Stones"
+      - "Paul McCartney"
+      - "Elton John"
+      - "Slipknot"
+      - "System of a Down"
+      - "=Tool"
+      - "David Guetta"
+      - "Martin Garrix"
+      - "Calvin Harris"
+      - "Tiesto"
+      - "Armin van Buuren"
+      - "Carl Cox"
+      - "Bad Bunny"
+      - "50 Cent"
+      - "Snoop Dogg"
+      - "Hans Zimmer"
+      - "Andre Rieu"
+      - "2Cellos"
+      - "Maneskin"
+      - "Sam Smith"
+      - "Lewis Capaldi"
+      - "Tate McRae"
+      - "Sabrina Carpenter"
+      - "Olivia Rodrigo"
+      - "Duran Duran"
+      - "Simply Red"
+      - "Bryan Adams"
+      - "Deep Purple"
+      - "Bruce Dickinson"
+      - "Nick Cave"
+      - "Massive Attack"
+      - "The Prodigy"
+      - "Hozier"
+      - "U2"
+      - "Kanye West"
+      - "Gabriel Iglesias"
+  festivali:
+    weight: 55
+    list:
+      - "EXIT festival|Exit fest"
+      - "INmusic"
+      - "Sea Dance"
+      - "Ultra Europe"
+      - "Hideout"
+      - "Lovefest"
+      - "Arsenal Fest"
+      - "Sarajevo Film Festival"
+      - "Beer Fest|Belgrade Beer Fest"
+      - "Zagreb Jazz Festival"
+      - "Fresh Island"
+
+teams:
+  weight: 40
+  reprezentacije:
+    weight: 50
+    list:
+      - "Vatreni|Hrvatska reprezentacija|reprezentacija Hrvatske|HNS"
+      - "Orlovi|reprezentacija Srbije|FSS"
+      - "Zmajevi|reprezentacija BiH|NSBiH"
+      - "reprezentacija Slovenije|NZS"
+  klubovi:
+    weight: 40
+    list:
+      - "Dinamo Zagreb|GNK Dinamo|Dinamo"
+      - "Hajduk"
+      - "HNK Rijeka"
+      - "NK Osijek"
+      - "Crvena Zvezda"
+      - "Partizan"
+      - "FK Sarajevo"
+      - "Zeljeznicar|=Zeljo"
+      - "Zrinjski"
+      - "Borac Banja Luka"
+      - "Olimpija Ljubljana|NK Olimpija|Cedevita Olimpija"
+      - "NK Maribor"
+  natjecanja:
+    weight: 35
+    list:
+      - "Liga prvaka|Champions League|Liga sampiona"
+      - "Europska liga|Europa League|Liga Evrope"
+      - "Konferencijska liga|Conference League"
+      - "Euroliga|Euroleague"
+      - "vjecni derbi|veciti derbi|derbi"
+      - "Novak Djokovic|Djokovic"
+      - "Davis Cup"
+      - "UFC"
+      - "FNC"
+
+venues:
+  weight: 40
+  stadioni:
+    weight: 60
+    list:
+      - "Maksimir"
+      - "Poljud"
+      - "Rajko Mitic|Marakana"
+      - "Stadion Partizana|Stadion Partizan"
+      - "Usce"
+      - "Kosevo|Asim Ferhatovic"
+      - "Bilino Polje"
+      - "Stozice"
+      - "Ljudski vrt"
+      - "Arena Pula|Amfiteatar Pula|Pulska Arena"
+      - "Hipodrom"
+  dvorane:
+    weight: 40
+    list:
+      - "Arena Zagreb"
+      - "Dom sportova"
+      - "Spaladium|Arena Split"
+      - "Stark Arena|Beogradska Arena|Kombank Arena|Stark"
+      - "Zetra|Olimpijska dvorana Juan Antonio Samaranch"
+      - "SPENS"
+      - "Kresimir Cosic|Visnjik"
+      - "Bonbon Arena|Gradski vrt"
+  srednje:
+    weight: 20
+    list:
+      - "Sava Centar|Sava Center"
+      - "Hala Tivoli|Tivoli"
+      - "Tasmajdan"
+      - "Lisinski"
+      - "Cankarjev dom"
+      - "mts dvorana"
+      - "Tvrdjava"
+      - "Pionir"
+
+keywords:
+  positive:
+    "rasprodan|rasprodano|rasprodani|razprodano|sold out": 15
+    "dodatni koncert|drugi koncert|jos jedan koncert|novi termin|dodatni termin|jos jedan termin": 20
+    "presale|pretprodaja|predprodaja|early bird": 15
+    "pocinje prodaja|pocela prodaja|krece prodaja|prodaja pocinje|u prodaji od|prodaja ulaznica|prodaja karata|prodaja vstopnic": 15
+    "ulaznice|karte|vstopnice|tickets": 5
+    "turneja|turneju|world tour|tour": 10
+    "jedini koncert|ekskluzivno|prvi put u|prvi koncert|veliki koncert|spektakl": 10
+    "stadion": 10
+    "koncert|koncerta|concert": 5
+    "festival": 5
+    "stand up|standup": 5
+  negative:
+    "za djecu|za decu|za otroke|djecja predstava|decja predstava|djeda mraz|deda mraz|bozicek": -30
+    "radionica|radionice|delavnica|workshop": -40
+    "poklon bon|poklon vaucer|vaucer|gift card|darilni bon": -60
+    "paketi storitev|paket usluga": -40
+    "muzej|zoo|zooloski|razstava|izlozba": -40
+    "kino|projekcija": -20
+    "parking": -50
+    "clanstvo|clanarina|sezonska|sezonska ulaznica|paketna vstopnica|abonma|abonman": -40
+    "preminuo|preminula|umro|umrla|sahrana": -60
+    "tribute|tribjut|cover band|kaver bend|kao nekad": -60
+    # koncerti dijaspore / van regije
+    "=bec|=becu|=beca|vienna|wien|sofija|sofiji|minhen|munchen|frankfurt|cirih|zurich|stutgart|stuttgart|cikago|chicago|toronto|melburn|sidnej|pariz|london|berlin|bazel|hamburg|dortmund|stokholm|malme|oslo|amsterdam|njujork|new york|skoplje|skopje|budimpesta|budapest|temisvar|grac|graz|klagenfurt|celovec|beljak|linz|salzburg": -40
+
+# Vijesti (portali, Google News) idu ODMAH samo ako spominju karte/prodaju.
+# Ako spominju samo koncert/nastup + izvodjaca s liste -> idu u sazetak. Inace se ignoriraju.
+news_gate:
+  sale: "ulaznice|ulaznica|karte|karata|kartama|vstopnice|vstopnic|prodaja|prodaje|presale|pretprodaja|predprodaja|rasprodan|rasprodano|razprodano|sold out|dodatni koncert|dodatni termin|novi termin|turneja|turneju|tour|tickets|on sale"
+  event: "koncert|nastup|festival|utakmica|derbi|spektakl|stand up"

@@ -1,0 +1,101 @@
+# =====================================================================
+#  IZVORI: svaki se moze ugasiti s enabled: false
+#  type = koji parser se koristi (radar/sources/*.py)
+#  every: N    -> izvor se pokrece samo svaki N-ti run (stedi minute)
+#  allow_empty -> 0 rezultata nije greska (inace health check javlja kvar)
+# =====================================================================
+
+# Eventim: sitemap (novi eventi i izvodjaci) + javne stranice dvorana (datum, pocetak prodaje, status).
+#  venue_scan_every: svaki koliki run se prolaze velike dvorane radi promjena (4 = svaka ~2h)
+#  venue_min_weight: koje dvorane s watchliste se prate (40 = stadioni + arene)
+#  venue_pages: koliko stranica po dvorani (10 evenata po stranici)
+eventim_hr:
+  type: eventim
+  sitemap: https://www.eventim.hr/staticsite/sitemap/HRY/sitemapindex_hr.xml
+  country: HR
+  venue_scan_every: 4
+  venue_min_weight: 40
+  venue_pages: 3
+
+eventim_si:
+  type: eventim
+  sitemap: https://www.eventim.si/staticsite/sitemap/SIB/sitemapindex_sl.xml
+  country: SI
+  venue_scan_every: 4
+  venue_min_weight: 40
+  venue_pages: 3
+
+tickets_rs:
+  type: tickets_rs
+  urls: [https://tickets.rs/]
+  country: RS
+
+gigstix:
+  type: gigstix
+  sitemap_index: https://new.gigstix.com/sitemap_index.xml
+  country: RS
+
+ulaznice_hr:
+  type: ulaznice_hr
+  url: https://www.ulaznice.hr/web/events
+  country: HR
+
+kupikartu_ba:
+  type: kupikartu_ba
+  urls: [https://www.kupikartu.ba/]
+  country: BA
+
+mojekarte_si:
+  type: mojekarte_si
+  sitemap: https://www.mojekarte.si/sitemap-si-perf.xml
+  country: SI
+
+# Google News: najave + Entrio eventi (Entrio blokira botove, ali Google ih indeksira).
+# Upit moze biti string (sr/RS izdanje, pokriva cijelu regiju) ili {q, lang, country}.
+google_news:
+  type: google_news
+  queries:
+    - "site:entrio.hr when:2d"
+    - "site:entrio.ba when:2d"
+    - "site:entrio.rs when:2d"
+    - "prodaja ulaznica koncert when:2d"
+    - "počela prodaja karata when:2d"
+    - "karte za koncert when:2d"
+    - "ulaznice za koncert when:2d"
+    - "dodatni koncert when:3d"
+    - "rasprodan koncert when:2d"
+    - "koncert \"Arena Zagreb\" when:3d"
+    - "koncert \"Štark Arena\" OR \"Beogradska arena\" when:3d"
+    - "koncert Zetra OR Koševo OR Sarajevo karte when:3d"
+    - "stadion koncert karte when:3d"
+    - "turneja Zagreb OR Beograd OR Ljubljana OR Sarajevo when:3d"
+    - "ulaznice Dinamo OR Hajduk OR reprezentacija when:2d"
+    - "karte Zvezda OR Partizan OR Orlovi when:2d"
+    - "ulaznice \"Liga prvaka\" OR Euroliga when:3d"
+    - {q: "koncert vstopnice when:2d", lang: sl, country: SI}
+    - {q: "Stožice koncert when:3d", lang: sl, country: SI}
+    - {q: "razprodano koncert when:3d", lang: sl, country: SI}
+
+# RSS portala: prolaze samo clanci koji spominju karte/koncerte/turneje
+portali:
+  type: rss
+  feeds:
+    index: {url: "https://www.index.hr/rss", country: HR}
+    24sata: {url: "https://www.24sata.hr/feeds/aktualno.xml", country: HR}
+    vecernji: {url: "https://www.vecernji.hr/feeds/latest", country: HR}
+    tportal: {url: "https://www.tportal.hr/rss-najnovije.xml", country: HR}
+    blic: {url: "https://www.blic.rs/rss/danasnje-vesti", country: RS}
+    kurir: {url: "https://www.kurir.rs/rss", country: RS}
+    telegraf: {url: "https://www.telegraf.rs/rss", country: RS}
+    klix: {url: "https://www.klix.ba/rss", country: BA}
+    avaz: {url: "https://avaz.ba/rss", country: BA}
+    24ur: {url: "https://www.24ur.com/rss", country: SI}
+    rtvslo: {url: "https://img.rtvslo.si/feeds/00.xml", country: SI}
+
+# Bandsintown: turneje stranih izvodjaca s watchliste u regiji.
+# Treba GitHub secret BANDSINTOWN_APP_ID (inace se preskace).
+bandsintown:
+  type: bandsintown
+  artist_groups: [strani]
+  every: 4
+  allow_empty: true

@@ -1,0 +1,5 @@
+feedparser==6.0.14
+httpx==0.28.1
+PyYAML==6.0.4
+selectolax==1.0.2
+tzdata==2026.6

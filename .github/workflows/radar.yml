@@ -1,0 +1,75 @@
+name: radar
+
+on:
+  schedule:
+    # vremena su UTC (zimi +1h, ljeti +2h po nasem). :07 i :37 jer GitHub kasni u punim satima.
+    - cron: "7,37 5-22 * * *"   # danju svakih 30 min
+    - cron: "7 23,0-4 * * *"    # nocu svaki sat
+  workflow_dispatch:
+    inputs:
+      digest_now:
+        description: "Posalji jutarnji sazetak odmah"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: radar
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instaliraj
+        run: pip install -q -r requirements.txt
+
+      - name: Ucitaj stanje (grana 'state')
+        run: |
+          mkdir -p state
+          if git fetch -q --depth=1 origin state 2>/dev/null; then
+            git show FETCH_HEAD:seen.json > state/seen.json
+            echo "stanje ucitano ($(wc -c < state/seen.json) B)"
+          else
+            echo "nema stanja -> prvi run (baseline)"
+          fi
+
+      - name: Scan
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          BANDSINTOWN_APP_ID: ${{ secrets.BANDSINTOWN_APP_ID }}
+        run: python -m radar scan ${{ inputs.digest_now && '--digest-now' || '' }}
+
+      - name: Spremi stanje
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd state
+          git init -q -b state
+          git add seen.json
+          git -c user.name="radar-bot" -c user.email="radar-bot@users.noreply.github.com" commit -qm "state $(date -u +%FT%TZ)"
+          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" state
+
+      - name: Javi gresku na Telegram
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          [ -n "$TELEGRAM_BOT_TOKEN" ] || exit 0
+          for chat in ${TELEGRAM_CHAT_ID//,/ }; do
+            curl -s -o /dev/null "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              --data-urlencode "chat_id=${chat}" \
+              --data-urlencode "text=❌ Karte radar: run je pao. Log: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          done
