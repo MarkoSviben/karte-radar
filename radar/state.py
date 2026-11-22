@@ -50,5 +50,6 @@ class State:
         now = now or time.time()
         for s in self.sources.values():
             s["seen"] = {k: v for k, v in s.get("seen", {}).items() if now - v < SEEN_TTL_DAYS * DAY}
+            s["first"] = {k: v for k, v in s.get("first", {}).items() if now - v < 14 * DAY}
         self.recent = [r for r in self.recent if now - r["ts"] < 7 * DAY]
         self.digest_queue = [e for e in self.digest_queue if now - e.get("_queued", now) < 3 * DAY][-500:]

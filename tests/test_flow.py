@@ -129,3 +129,17 @@ def test_status_change_and_sale_date(tmp_path):
     run3.collect_new({"tickets_rs": res([ev("1", "Coldplay", venue="Maksimir", availability="SoldOut", sale_start=sale)])})
     run3.dispatch_changes()
     assert nt3.msgs == []
+
+
+def test_overview(tmp_path):
+    from radar.overview import build
+    now = datetime(2026, 11, 22, 12, 0, tzinfo=TZ)
+    evs = [ev("1", "Severina", venue="Arena Zagreb", country="HR", start="2026-12-15T20:00:00+01:00", availability="InStock"),
+           ev("2", "SEVERINA", venue="Arena Zagreb", country="HR", start="2026-12-16T20:00:00+01:00"),
+           ev("3", "Coldplay", venue="Maksimir", country="HR", date="1.6.2025."),          # prosao -> van
+           ev("4", "Mali koncert", venue="Klub", country="HR", date="1.6.2027."),          # premalo bodova -> van
+           ev("5", "Aca Lukas", venue="Stark Arena", country="RS", date="20 December 2026")]
+    md = build({"tickets_rs": res(evs)}, Scorer(WL), {"HR", "RS"}, now, {"tickets_rs:5": now.timestamp()})
+    assert "Severina" in md and "(+1 termina)" in md and "u prodaji" in md
+    assert "Coldplay" not in md and "Mali koncert" not in md
+    assert "## 🆕 Novo" in md and "🆕 [Aca Lukas]" in md

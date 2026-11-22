@@ -307,6 +307,9 @@ keywords:
     # koncerti dijaspore / van regije
     "=bec|=becu|=beca|vienna|wien|sofija|sofiji|minhen|munchen|frankfurt|cirih|zurich|stutgart|stuttgart|cikago|chicago|toronto|melburn|sidnej|pariz|london|berlin|bazel|hamburg|dortmund|stokholm|malme|oslo|amsterdam|njujork|new york|skoplje|skopje|budimpesta|budapest|temisvar|grac|graz|klagenfurt|celovec|beljak|linz|salzburg": -40
 
+    # Eventim HR/SI prodaje i evente u Austriji/Njemackoj
+    "worthersee|ostbucht|burg clam|gasometer|stadthalle|hochosterwitz|seebuhne|kufstein|innsbruck|osterreich|austria|deutschland|schloss|festspiele|wiener": -60
+
 # Vijesti (portali, Google News) idu ODMAH samo ako spominju karte/prodaju.
 # Ako spominju samo koncert/nastup + izvodjaca s liste -> idu u sazetak. Inace se ignoriraju.
 news_gate:

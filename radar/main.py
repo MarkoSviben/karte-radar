@@ -19,6 +19,7 @@ from zoneinfo import ZoneInfo
 import yaml
 
 from radar import notify as N
+from radar import overview
 from radar.http import make_client
 from radar.models import Event
 from radar.scoring import Scorer
@@ -136,6 +137,10 @@ class Run:
             fresh = [e for e in events if e.uid not in seen]
             for e in events:
                 seen[e.uid] = self.ts
+            first = s.setdefault("first", {})
+            if s.get("initialized"):
+                for e in fresh:
+                    first[e.uid] = self.ts
             if not s.get("initialized") and not self.show_all:
                 self._track_changes(s, events, {e.uid for e in events})  # samo zapamti, bez obavijesti
                 s["initialized"] = True
@@ -356,11 +361,31 @@ def scan(args) -> int:
         st.started = True
         if not args.no_digest:
             run.digest(results, force=args.digest_now)
+        write_overview(st, wl, results, now, None if args.dry_run else STATE_PATH.parent / "PREGLED.md")
     if args.dry_run:
         print("(dry-run: stanje NIJE spremljeno)")
     else:
         st.save()
     print(f"Gotovo za {time.time() - t0:.1f}s, poslano poruka: {nt.sent}")
+    return 0
+
+
+def write_overview(st: State, wl: dict, results: dict, now: datetime, path: Path | None) -> None:
+    first = {f"{n}:{u}": ts for n, s in st.sources.items() for u, ts in s.get("first", {}).items()}
+    md = overview.build(results, Scorer(wl), set(wl.get("countries") or []), now, first)
+    if path:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(md, encoding="utf-8")
+        print(f"Pregled: {path} ({md.count(chr(10))} redaka)")
+
+
+def pregled_cmd(args) -> int:
+    """Napravi PREGLED.md lokalno (bez diranja stanja)."""
+    st = State.load(STATE_PATH)
+    wl = load_yaml("watchlist.yaml")
+    with make_client() as client:
+        results = run_sources(Context(client=client, watchlist=wl, run_no=4), load_yaml("sources.yaml"))
+    write_overview(st, wl, results, datetime.now(TZ), Path(args.out))
     return 0
 
 
@@ -424,6 +449,9 @@ def cli() -> None:
     d = sub.add_parser("digest", help="posalji sazetak odmah")
     d.add_argument("--dry-run", action="store_true")
     d.set_defaults(fn=digest_cmd)
+    pr = sub.add_parser("pregled", help="napravi PREGLED.md lokalno")
+    pr.add_argument("--out", default="PREGLED.md")
+    pr.set_defaults(fn=pregled_cmd)
     t = sub.add_parser("test-notify", aliases=["test-telegram"], help="probna obavijest")
     t.set_defaults(fn=test_notify)
     args = p.parse_args()

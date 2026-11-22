@@ -31,6 +31,31 @@ FOREIGN_CITIES = {"bec", "wien", "graz", "klagenfurt", "linz", "salzburg", "inns
                   "budimpesta", "budapest", "munchen", "trst", "trieste", "udine", "milano", "padova",
                   "verona", "venecija", "dornbirn", "st-polten", "wiener-neustadt", "wels", "leoben"}
 
+# drzava po gradu iz URL-a (Eventim HR prodaje i SLO evente i obrnuto)
+CITY_COUNTRY = {
+    **{c: "SI" for c in ("ljubljana", "maribor", "koper", "celje", "kranj", "ptuj", "velenje", "loce", "domzale",
+                         "bled", "portoroz", "piran", "izola", "nova-gorica", "novo-mesto", "murska-sobota",
+                         "kartuzija", "bonifika", "golovec", "tabor", "lent", "stozice", "krsko", "brezice")},
+    **{c: "HR" for c in ("zagreb", "split", "rijeka", "osijek", "pula", "zadar", "varazdin", "sibenik", "dubrovnik",
+                         "karlovac", "slavonski-brod", "vukovar", "cakovec", "koprivnica", "porec", "rovinj",
+                         "opatija", "makarska", "vinkovci", "sisak", "bjelovar")},
+    **{c: "RS" for c in ("beograd", "novi-sad", "nis", "kragujevac", "subotica")},
+    **{c: "BA" for c in ("sarajevo", "mostar", "banja-luka", "tuzla", "zenica", "bihac")},
+    **{c: "XX" for c in FOREIGN_CITIES | {"salzburgarena", "wiener", "stadthalle", "gasometer", "worthersee"}},
+}
+
+
+def guess_country(slug: str, city_slug: str, default: str) -> str:
+    if city_slug in CITY_COUNTRY:
+        return CITY_COUNTRY[city_slug]
+    toks = slug.split("-")
+    pairs = [f"{a}-{b}" for a, b in zip(toks, toks[1:])]
+    for t in reversed(toks + pairs):  # grad je obicno na kraju sluga
+        if t in CITY_COUNTRY:
+            return CITY_COUNTRY[t]
+    return default
+
+
 REQUEST_DELAY = 1.0  # s izmedju zahtjeva prema stranicama dvorana
 MAX_PAGES_PER_VENUE = 5
 
@@ -185,7 +210,7 @@ def fetch(ctx: Context, cfg: dict) -> list[Event]:
             bv = best_venue(m.group(1), venues)
             vurl = venues[bv][2] if bv else ""
             e = Event(source=name, uid=m.group(2), title=title, url=loc, kind="listing",
-                      venue=venue, city=city, country="XX" if city_slug in FOREIGN_CITIES else country,
+                      venue=venue, city=city, country=guess_country(m.group(1), city_slug, country),
                       extra={"lastmod": lastmod, "needs_enrich": True, "venue_url": vurl})
             out.append(e)
             by_uid[e.uid] = e
