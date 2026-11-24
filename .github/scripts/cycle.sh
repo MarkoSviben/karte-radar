@@ -3,6 +3,12 @@
 # Poziva ga petlja u .github/workflows/radar.yml. Argumenti se prosljedjuju `radar scan` (npr. --digest-now).
 set -euo pipefail
 
+# najnovija watchlista, izvori, kod i stranica s GitHuba (promjena vrijedi od iduceg kruga, ne tek od iduceg runa).
+# .github se ne dira dok skripta radi.
+if git fetch -q --depth=1 origin "${GITHUB_REF_NAME:-main}"; then
+  git checkout -q FETCH_HEAD -- config radar site requirements.txt || echo "::warning::osvjezavanje koda nije uspjelo"
+fi
+
 python -m radar scan "$@"
 
 # stanje: uvijek jedan commit (force push), da grana ne raste
