@@ -54,6 +54,8 @@ mojekarte_si:
   country: SI
 
 # Google News: najave + Entrio eventi (Entrio blokira botove, ali Google ih indeksira).
+# Uz ove pretrage radar SAM doda po jednu pretragu o kartama za svako ime s liste "pratim"
+# (config/watchlist.yaml); follow_queries: false to gasi.
 # Upit moze biti string (sr/RS izdanje, pokriva cijelu regiju) ili {q, lang, country}.
 google_news:
   type: google_news
@@ -97,6 +99,10 @@ google_news:
     - {q: "prihaja v Ljubljano koncert when:3d", lang: sl, country: SI}
     - {q: "stand up Ljubljana when:3d", lang: sl, country: SI}
     - {q: "tour 2027 Zagreb OR Belgrade OR Ljubljana OR Sarajevo when:3d", lang: en, country: US}
+    # izlazak karata: faze, dodatni termini, rasprodano (cesto Entrio eventi koji se inace ne vide)
+    - "\"dodatni nastup\" OR \"novi termin\" OR \"dodan termin\" when:3d"
+    - "\"nova faza\" OR \"early bird\" OR \"prva faza\" ulaznice when:3d"
+    - "rasprodan nastup OR \"rasprodao nastup\" OR \"rasprodala\" when:3d"
 
 # RSS portala: prolaze samo clanci koji spominju koncerte, turneje, stand-up, karte...
 portali:
@@ -139,6 +145,9 @@ glazbeni_portali:
     ravnododna: {url: "https://ravnododna.com/feed/", country: HR, label: Ravno do dna}
     balkanrock: {url: "https://balkanrock.com/feed/", country: RS, label: Balkanrock}
     headliner: {url: "https://www.headliner.rs/feed/", country: RS, label: Headliner}
+    zgportal: {url: "https://www.zgportal.com/zgdogadanja/feed/", country: HR, label: ZGportal}
+    journal: {url: "https://www.journal.hr/feed/", country: HR, label: Journal.hr}
+    ravnododna_events: {url: "https://ravnododna.com/events/feed/", country: HR, label: Ravno do dna}
 
 # Bandsintown: turneje stranih izvodjaca s watchliste u regiji.
 # Treba GitHub secret BANDSINTOWN_APP_ID (inace se preskace).

@@ -46,6 +46,13 @@ class Scorer:
                     self.rules += _parse_entries(entries.get("list"), w, group)
                 else:
                     self.rules += _parse_entries(entries, default_w, group)
+        # "pratim": organizatori/festivali/izvodjaci kojima se prati izlazak karata (jaci od watchliste)
+        fol = wl.get("pratim") or {}
+        if isinstance(fol, list):
+            fol = {"list": fol}
+        follow_rules = _parse_entries(fol.get("list"), int(fol.get("weight", 90)), "artist")
+        self.follow: set[str] = {r.label for r in follow_rules}
+        self.rules += follow_rules
         kw = wl.get("keywords") or {}
         for name, w in {**(kw.get("positive") or {}), **(kw.get("negative") or {})}.items():
             alts = [Phrase(a) for a in name.split("|")]
@@ -104,6 +111,10 @@ class Scorer:
         if e.kind == "news":
             e.score = self._news_gate(e, toks, total)
         return e
+
+    def is_followed(self, e: Event) -> bool:
+        """Event/vijest o nekome s liste "pratim"."""
+        return bool(self.follow & set(e.extra.get("labels") or []))
 
     @staticmethod
     def is_watchlisted(e: Event) -> bool:

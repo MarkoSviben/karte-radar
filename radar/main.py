@@ -12,6 +12,7 @@ import hashlib
 import concurrent.futures as cf
 import json
 import os
+import re
 import shutil
 import sys
 import time
@@ -28,6 +29,7 @@ from radar.models import Event
 from radar.scoring import Scorer
 from radar.sources import ENRICHERS, REGISTRY
 from radar.sources.bandsintown import Skip
+from radar.sources.news import follow_queries
 from radar.sources.base import Context
 from radar.state import State
 from radar.textnorm import key_tokens, similar
@@ -56,6 +58,33 @@ def _when(e: Event) -> str:
     return " ".join(e.date.lower().split())
 
 
+_NUM_RE = re.compile(r"\d[\d.,]*")
+
+
+def price_value(p: str) -> float | None:
+    """'od € 6,00' / 'od 34.5 EUR' / 'od 3.800,00' -> broj; 0 ili nepoznato -> None."""
+    m = _NUM_RE.search(p or "")
+    if not m:
+        return None
+    s = m.group(0).rstrip(".,")
+    if "," in s and "." in s:  # zadnji separator je decimalni
+        s = s.replace(".", "").replace(",", ".") if s.rfind(",") > s.rfind(".") else s.replace(",", "")
+    elif "," in s:
+        s = s.replace(",", ".") if re.search(r",\d{1,2}$", s) else s.replace(",", "")
+    elif re.fullmatch(r"\d{1,3}(\.\d{3})+", s):  # 3.800 = tri tisuce
+        s = s.replace(".", "")
+    try:
+        v = float(s)
+    except ValueError:
+        return None
+    return v or None
+
+
+def price_changed(old: str, new: str) -> bool:
+    a, b = price_value(old), price_value(new)
+    return bool(a and b and abs(a - b) >= 0.01)
+
+
 def parse_iso(s: str) -> datetime | None:
     if not s:
         return None
@@ -77,6 +106,8 @@ def run_sources(ctx: Context, sources: dict, only: str | None = None) -> dict:
         if not cfg.get("enabled", True):
             continue
         cfg = {**cfg, "_name": name}
+        if cfg.get("type") == "google_news" and cfg.get("follow_queries", True):
+            cfg["follow"] = follow_queries(ctx.watchlist)
         if cfg["type"] not in REGISTRY:
             print(f"! nepoznat tip izvora {cfg['type']} ({name})")
             continue
@@ -170,9 +201,12 @@ class Run:
             if not (e.availability or e.sale_start):
                 continue
             # [status, pocetak prodaje, kad provjereno, datum eventa, cijena, naslov, dvorana, grad]
-            cur = [e.availability, e.sale_start, self.ts, e.start, e.price, e.title, e.venue, e.city]
             old = snap.get(e.uid)
-            if old and e.uid not in fresh and (old[0], old[1]) != (cur[0], cur[1]):
+            # cijena koja ovaj put nije procitana -> zadrzi zadnju poznatu (da se ne izgubi usporedba)
+            price = e.price or (old[4] if old and len(old) > 4 else "")
+            cur = [e.availability, e.sale_start, self.ts, e.start, price, e.title, e.venue, e.city]
+            if old and e.uid not in fresh and ((old[0], old[1]) != (cur[0], cur[1])
+                                               or (len(old) > 4 and price_changed(old[4], cur[4]))):
                 self.changes.append((e, old, cur))
             snap[e.uid] = cur
         # zaboravi snimke starije od 120 dana
@@ -224,14 +258,27 @@ class Run:
             cls = "news" if e.kind == "news" else "listing"
             labels = e.extra.get("labels") or []
             go_instant = e.score >= self.scorer.instant
+            followed = self.scorer.is_followed(e)
             # vise clanaka o istom izvodjacu unutar 24h -> samo prvi ide odmah
-            if go_instant and cls == "news" and labels and any(
-                    r.get("label") in labels and r["kind"] == "news" and self.ts - r["ts"] < 86400
-                    for r in self.st.recent):
-                go_instant = False
+            # (za listu "pratim" ide svaka nova vijest, osim ako je ista prica s drugog portala)
+            if go_instant and cls == "news" and labels:
+                same = [r for r in self.st.recent
+                        if r.get("label") in labels and r["kind"] == "news" and self.ts - r["ts"] < 86400]
+                if same and (not followed or any(similar(r["t"], e.title) >= 0.6 for r in same)):
+                    go_instant = False
+            sale = parse_iso(e.sale_start)
+            # povijest izlaska karata: sve za listu "pratim" + svi novi veliki eventi na prodajnim mjestima
+            if followed or (cls == "listing" and e.score >= self.scorer.instant):
+                if sale and sale > self.now:
+                    what = f"objavljen, prodaja kreće {N.fmt_dt(e.sale_start)}"
+                elif e.kind == "listing":
+                    what = "dodatni termin" if e.extra.get("extra_date") else "novi event na prodajnom mjestu"
+                else:
+                    what = {"artist": "nova stranica izvođača", "tour": "najava turneje"}.get(e.kind) or {
+                        "karte": "vijest o kartama", "najava": "najava"}.get(e.extra.get("news_type"), "spomen u medijima")
+                self.history_add(e, what, "news" if e.kind == "news" else "listing")
             if go_instant and instant_sent >= MAX_INSTANT_PER_RUN:
                 go_instant = False
-            sale = parse_iso(e.sale_start)
             header = "➕ DODATNI TERMIN" if e.extra.get("extra_date") else HEADERS.get(e.kind, "🔥 NOVO")
             if e.extra.get("n_dates", 1) > 1:
                 header += f" ({e.extra['n_dates']} termina)"
@@ -249,6 +296,15 @@ class Run:
                 self.st.reminders[f"{e.source}:{e.uid}"] = {**e.to_dict(), "sent": sent}
         if instant_sent >= MAX_INSTANT_PER_RUN:
             self.nt.send(f"ℹ️ Ima još novih velikih evenata, poslao sam prvih {MAX_INSTANT_PER_RUN}; ostali su u jutarnjem sažetku.")
+
+    def history_add(self, e: Event, what: str, kind: str) -> None:
+        """Povijest izlaska karata (za pogled "Kretanje karata" na stranici)."""
+        self.st.history.append({
+            "ts": self.ts, "t": e.title, "u": e.url, "v": e.venue, "c": e.city, "cc": e.country or "",
+            "what": what, "k": kind, "sc": e.score, "src": e.extra.get("via") or e.source,
+            "lab": (e.extra.get("labels") or [])[:2], "f": self.scorer.is_followed(e),
+            "p": e.price, "ks": e.availability,
+        })
 
     # 4) podsjetnici prije pocetka prodaje
     def reminders(self) -> None:
@@ -282,14 +338,22 @@ class Run:
                 bits.append(f"{N.status_hr(old[0]) or '?'} → {N.status_hr(cur[0])}")
             if old[1] != cur[1] and cur[1]:
                 bits.append(("datum prodaje promijenjen: " if old[1] else "objavljen početak prodaje: ") + N.fmt_dt(cur[1]))
+            price_drop_only = False
+            if len(old) > 4 and price_changed(old[4], cur[4]):
+                up = price_value(cur[4]) > price_value(old[4])
+                bits.append(f"najniža cijena {old[4]} → {cur[4]}"
+                            + (" (jeftinije karte rasprodane / nova faza)" if up else " (pala)"))
+                price_drop_only = not up and len(bits) == 1
             if not bits:
                 continue
+            self.history_add(e, "; ".join(bits), "change")
             e.reasons.insert(0, "promjena")
             sale = parse_iso(e.sale_start)
             key = f"{e.source}:{e.uid}"
             if sale and sale > self.now and key not in self.st.reminders:
                 self.st.reminders[key] = {**e.to_dict(), "sent": []}
-            if e.score >= self.scorer.instant:
+            # rast cijene (nova faza) i promjena statusa idu odmah; sam pad cijene samo u sazetak
+            if e.score >= self.scorer.instant and not price_drop_only:
                 self.nt.send(N.event_message(e, "🔄 PROMJENA: " + "; ".join(bits)))
             else:
                 e.title = f"[{'; '.join(bits)}] {e.title}"
@@ -409,7 +473,7 @@ def write_overview(st: State, wl: dict, results: dict, now: datetime, path: Path
             if not n.startswith("_") and n in results}
     overview.update_news(st.news, results, scorer, now)
     data = overview.to_json(reps, now, scorer.instant, srcs, st.sources.get("_meta", {}).get("details_at", ""),
-                            overview.news_json(st.news, scorer.instant))
+                            overview.news_json(st.news, scorer.instant), overview.history_json(st.history, now))
     if path:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(md, encoding="utf-8")

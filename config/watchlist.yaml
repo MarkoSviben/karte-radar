@@ -341,6 +341,36 @@ artists:
       - "Zagreb Jazz Festival"
       - "Fresh Island"
 
+# =====================================================================
+#  PRATIM: organizatori, festivali i izvodjaci kojima pratis KAKO IZLAZE KARTE
+#  (nova faza, early bird, rasprodano, dodatni termin, nova tura karata).
+#   - svako ime dobije `weight` bodova (vise od obicne watchliste)
+#   - radar za svako ime SAM napravi Google News pretragu o kartama
+#     (bitno za Entrio, koji blokira automatske posjete pa se vidi samo preko medija)
+#   - svaka vijest o kartama za njih ide odmah, i kad ih je vise u istom danu
+#   - sve promjene vide se na stranici u pogledu "Kretanje karata"
+#  Dodaj novo ime u istom formatu kao gore ("Ime|drugo ime", "=TOCNO").
+# =====================================================================
+pratim:
+  weight: 90
+  list:
+    - "=BSH|BSH Island|BSH Events|BSH Zagreb"
+    - "Lollipop"
+    - "Ski Beat Festival"
+    - "Daniel Sloss"
+    - "Jimmy Carr"
+    - "INmusic"
+    - "Ultra Europe"
+    - "EXIT festival|Exit fest"
+    - "Sea Dance"
+    - "Fresh Island"
+    - "Hideout"
+    - "Dimensions festival"
+    - "Defected Croatia"
+    - "Sonus festival"
+    - "Arsenal Fest"
+    - "Lovefest"
+
 teams:
   weight: 40
   reprezentacije:
@@ -416,12 +446,14 @@ venues:
       - "mts dvorana"
       - "Tvrdjava"
       - "Pionir"
+      - "Kino SC|Studentski centar|Pogon Jedinstvo|Tvornica kulture|Boogaloo|Zagreb Pyramids"
 
 keywords:
   positive:
     "rasprodan|rasprodano|rasprodani|razprodano|sold out": 15
     "dodatni koncert|drugi koncert|jos jedan koncert|novi termin|dodatni termin|jos jedan termin": 20
     "presale|pretprodaja|predprodaja|early bird": 15
+    "prva faza|druga faza|treca faza|zadnja faza|nova faza|faza karata|faza ulaznica|nova tura karata|dodatne karte|dodatne ulaznice|dodatna kolicina": 15
     "pocinje prodaja|pocela prodaja|krece prodaja|prodaja pocinje|u prodaji od|prodaja ulaznica|prodaja karata|prodaja vstopnic": 15
     "ulaznice|karte|vstopnice|tickets": 5
     "turneja|turneju|world tour|=tour": 10
@@ -440,7 +472,8 @@ keywords:
     "poklon bon|poklon vaucer|vaucer|gift card|darilni bon": -60
     "paketi storitev|paket usluga": -40
     "muzej|zoo|zooloski|razstava|izlozba": -40
-    "kino|projekcija": -20
+    # samo filmske projekcije; "Kino SC" je dvorana za stand-up (npr. Daniel Sloss) i NE smije gubiti bodove
+    "projekcija|projekcije|filmska projekcija|premijera filma|filmski program": -20
     "parking": -50
     "clanstvo|clanarina|sezonska|sezonska ulaznica|paketna vstopnica|abonma|abonman": -40
     "preminuo|preminula|umro|umrla|sahrana": -60
@@ -461,6 +494,6 @@ keywords:
 #  - spominje dogadjaj + nekoga s liste (tada samo u sazetak).
 # Ostalo (tracevi, intervjui...) se ignorira.
 news_gate:
-  sale: "ulaznice|ulaznica|karte|karata|kartama|vstopnice|vstopnic|prodaja|prodaje|presale|pretprodaja|predprodaja|rasprodan|rasprodano|razprodano|sold out|dodatni koncert|dodatni termin|novi termin|turneja|turneju|=tour|tickets|on sale"
+  sale: "ulaznice|ulaznica|karte|karata|kartama|vstopnice|vstopnic|prodaja|prodaje|presale|pretprodaja|predprodaja|early bird|prva faza|druga faza|treca faza|zadnja faza|nova faza|faza karata|faza ulaznica|tura karata|nova tura|rasprodan|rasprodano|razprodano|sold out|dodatni koncert|dodatni termin|novi termin|turneja|turneju|=tour|tickets|on sale"
   event: "koncert|koncerta|koncertom|koncerte|nastup|nastupa|nastop|festival|utakmica|derbi|spektakl|stand up|standup|stendap|komicar|komedija|show|turneja|turneju|=tour|predstava|mjuzikl|musical|bend|rockeri|reper|pjevac|pevac|pjevacica|pevacica|glazbenik|muzicar|izvodjac|orkestar|klapa|dj"
-  announce: "dolazi|stize|stizu|prihaja|najavio|najavila|najavili|najava|najavljen|najavljena|odrzat ce|odrzace|odrzati|nastupit ce|nastupice|nastupa u|vraca se|vracaju se|povratak|nova turneja|regionalna turneja|svjetska turneja|svetska turneja|world tour|prvi put u|2027|2028"
+  announce: "dolazi|stize|stizu|prihaja|najavio|najavila|najavili|najava|najavljen|najavljena|odrzat ce|odrzace|odrzati|nastupit ce|nastupice|nastupa u|vraca se|vracaju se|povratak|nova turneja|regionalna turneja|svjetska turneja|svetska turneja|world tour|prvi put u|2027|2028|sijecnja|veljace|ozujka|travnja|svibnja|lipnja|srpnja|kolovoza|rujna|listopada|studenoga|studenog|prosinca|januara|februara|aprila|=juna|=jula|avgusta|septembra|oktobra|novembra|decembra"

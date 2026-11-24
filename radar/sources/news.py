@@ -77,6 +77,22 @@ def _entries(ctx: Context, url: str):
     return feedparser.parse(get_text(ctx.client, url).encode("utf-8")).entries
 
 
+FOLLOW_TERMS = "ulaznice OR karte OR rasprodano OR faza OR prodaja OR \"early bird\""
+
+
+def follow_queries(wl: dict, days: int = 3) -> list[str]:
+    """Za svako ime s liste "pratim" jedna pretraga o kartama (sva alternativna imena u jednom upitu)."""
+    fol = wl.get("pratim") or {}
+    items = fol if isinstance(fol, list) else fol.get("list") or []
+    out = []
+    for item in items:
+        name = next(iter(item)) if isinstance(item, dict) else str(item)
+        alts = [a.strip().lstrip("=") for a in name.split("|") if a.strip()]
+        who = " OR ".join(f'"{a}"' for a in alts)
+        out.append(f"({who}) ({FOLLOW_TERMS}) when:{days}d")
+    return out
+
+
 def fetch_google_news(ctx: Context, cfg: dict) -> list[Event]:
     queries = []
     for q in cfg.get("queries", []):
@@ -84,6 +100,8 @@ def fetch_google_news(ctx: Context, cfg: dict) -> list[Event]:
             queries.append((q["q"], q.get("lang", "sr"), q.get("country", "RS")))
         else:
             queries.append((q, "sr", "RS"))
+    # pretrage za listu "pratim" (main.run_sources ih stavlja u cfg, pa promjena liste mijenja i hash izvora)
+    queries += [(q, "sr", "RS") for q in cfg.get("follow", [])]
     out: dict[str, Event] = {}
     errors = 0
 

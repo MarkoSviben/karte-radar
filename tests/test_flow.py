@@ -167,3 +167,49 @@ def test_news_announcements_for_anyone():
     gossip = s.score(Event(source="t", uid="4", title="Seka Aleksić se razvodi: skandal na aerodromu", url="", kind="news"))
     tourism = s.score(Event(source="t", uid="5", title="Ljubljana named 2027 European capital of tourism", url="", kind="news"))
     assert report.score == 0 and gossip.score == 0 and tourism.extra.get("news_type") != "karte"
+
+
+def test_price_phase_change_and_history(tmp_path):
+    from radar.main import price_value
+    assert price_value("od € 6,00") == 6.0 and price_value("od 3.800,00") == 3800.0
+    assert price_value("od 34.5 EUR") == 34.5 and price_value("od 0 EUR") is None and price_value("") is None
+    now = datetime(2026, 11, 22, 12, 0, tzinfo=TZ)
+    run, _ = make_run(tmp_path, now=now)
+    run.collect_new({"tickets_rs": res([ev("1", "Coldplay", venue="Maksimir", availability="InStock", price="od 45 EUR")])})
+    run2, nt2 = make_run(tmp_path, now=now, st=run.st)
+    run2.collect_new({"tickets_rs": res([ev("1", "Coldplay", venue="Maksimir", availability="InStock", price="od 59 EUR")])})
+    run2.dispatch_changes()
+    assert len(nt2.msgs) == 1 and "nova faza" in nt2.msgs[0]
+    assert run2.st.history[-1]["k"] == "change" and "45" in run2.st.history[-1]["what"]
+    # cijena ovaj put nije procitana -> nije promjena, a zadnja poznata ostaje zapamcena
+    run3, nt3 = make_run(tmp_path, now=now, st=run.st)
+    run3.collect_new({"tickets_rs": res([ev("1", "Coldplay", venue="Maksimir", availability="InStock", price="")])})
+    run3.dispatch_changes()
+    assert nt3.msgs == [] and run3.st.sources["tickets_rs"]["snap"]["1"][4] == "od 59 EUR"
+
+
+def test_followed_news_every_new_story(tmp_path):
+    s = Scorer(WL)
+    assert "BSH" in s.follow and "Lollipop" in s.follow
+    run, nt = make_run(tmp_path)
+    mk = lambda uid, t: Event(source="portali/x", uid=uid, title=t, url="u" + uid, kind="news")  # noqa: E731
+    run.dispatch(run.rank([mk("1", "BSH Island 2027: rasprodana prva faza ulaznica")]))
+    run.dispatch(run.rank([mk("2", "BSH Island: krenula druga faza karata, cijena 120 eura")]))   # nova prica -> ide
+    run.dispatch(run.rank([mk("3", "BSH Island 2027 rasprodana prva faza ulaznica za festival")]))  # ista prica -> ne
+    assert len(nt.msgs) == 2
+    assert [h["f"] for h in run.st.history] == [True, True, True]
+    # obicna watchlista i dalje: jedan clanak po izvodjacu u 24h
+    run.dispatch(run.rank([mk("4", "Počela prodaja karata za Stingov koncert u Beogradu"),
+                           ]))
+    run.dispatch(run.rank([mk("5", "Sting dodatni koncert u Zagrebu, ulaznice od petka")]))
+    assert len(nt.msgs) == 3
+
+
+def test_kino_sc_not_penalised_and_follow_queries():
+    from radar.sources.news import follow_queries
+    s = Scorer(WL)
+    e = s.score(Event(source="t", uid="1", title="Daniel Sloss - Bitter - Zagreb Day 2", url="", venue="Kino SC",
+                      city="Zagreb", kind="listing"))
+    assert e.score >= s.instant and s.is_followed(e)
+    qs = follow_queries(WL)
+    assert any('"BSH Island"' in q and "when:3d" in q for q in qs)

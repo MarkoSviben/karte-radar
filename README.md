@@ -6,7 +6,8 @@ Prati nove koncerte, utakmice, festivale i stand-up u **HR, RS, BiH i SLO** i š
 - **⏰ podsjetnik** 24 h i oko 1–2 h prije početka prodaje, kad je poznat datum prodaje
 - **➕ dodatni termin** za već javljen koncert
 - **☀️ jutarnji sažetak u 9:00:** manji eventi i prodaje koje kreću idućih 7 dana
-- **🔄 promjena** na Eventim eventu u velikoj dvorani: rasprodano, objavljen datum prodaje, prodaja otvorena (provjera svaka ~2 h)
+- **🔄 promjena** na velikom eventu: rasprodano, objavljen datum prodaje, prodaja otvorena, **porasla najniža cijena** (jeftinija faza rasprodana). Eventim dvorane provjerava svaka ~2 h, ulaznice.hr i tickets.rs svaki run
+- **👀 lista „pratim“** u [config/watchlist.yaml](config/watchlist.yaml) (BSH, Lollipop, Daniel Sloss, INmusic...): za svako ime radar sam pretražuje medije o kartama (faze, early bird, rasprodano) i javlja svaku novu vijest
 - **⚠️ upozorenje** kad neki izvor prestane raditi (stranica promijenila dizajn)
 
 Radi besplatno na GitHub Actionsu, svakih 30 min danju i svaki sat noću.
@@ -14,6 +15,7 @@ Radi besplatno na GitHub Actionsu, svakih 30 min danju i svaki sat noću.
 ## Pregledna stranica
 
 **https://markosviben.github.io/karte-pregled/** prikazuje sve evente koji su trenutno u prodaji, s filterima po državi, mjesecu i statusu te pretragom. Osvježava se svakim runom.
+- Pogled **Kretanje karata**: zapis zadnjih 30 dana, tj. kad je veliki event izašao u prodaju, kad je rasprodan, kad je porasla cijena i sve vijesti o imenima s liste „pratim“.
 - Stranica i njezini podaci (`data.json`) su u **javnom** repou `karte-pregled`. Tamo su samo javni podaci o eventima, bez koda, watchliste i ntfy imena.
 - Radar u taj repo piše preko deploy ključa (secret `PAGES_DEPLOY_KEY`), koji smije pisati samo u njega.
 - Izgled stranice je u [site/index.html](site/index.html).
@@ -31,6 +33,8 @@ Radi besplatno na GitHub Actionsu, svakih 30 min danju i svaki sat noću.
 | Google News | 20 pretraga | **Entrio** eventi (Google ih indeksira), najave, klubovi, dvorane |
 | 11 portala (RSS) | Index, 24sata, Večernji, tportal, Blic, Kurir, Telegraf, Klix, Avaz, 24ur, RTV SLO | najave koncerata i prodaje |
 | Bandsintown | API (opcionalno) | turneje stranih izvođača u regiji |
+
+**Entrio (BSH, Lollipop, većina stand-upa i klupskih evenata):** Entrio vraća 403 svakom automatskom posjetitelju, čak i za sitemap. Radar ga zato prati samo preko medija i Google Newsa. Faze karata na Entriju (early bird, 1. faza...) vide se samo ako o njima netko napiše. Za sigurno praćenje BSH-a i Lollipopa uključi i obavijesti organizatora (Instagram, newsletter, „prati organizatora“ na Entriju).
 
 **Napomena:** Entrio i stranice pojedinih eventa na Eventimu imaju anti-bot zaštitu (Cloudflare/Akamai). Radar je **ne zaobilazi**. Entrio prati preko Google Newsa. Za Eventim čita javni sitemap i javne stranice dvorana, koje sadrže sve detalje: polako, jednu po jednu, i staje na prvu bot-provjeru. Detalji (datum prodaje, status) postoje za evente u dvoranama koje Eventim ima u sitemapu. Za ostale stiže samo naslov, dvorana i grad. Radar ništa ne kupuje, samo javlja.
 

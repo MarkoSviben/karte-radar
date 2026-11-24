@@ -143,7 +143,7 @@ def ticket_state(e: Event, now: datetime) -> str:
 
 
 def to_json(reps: list[Event], now: datetime, instant: int, sources: dict | None = None,
-            details_at: str = "", news: list | None = None) -> dict:
+            details_at: str = "", news: list | None = None, history: list | None = None) -> dict:
     """Podaci za web stranicu (site/index.html). Bez razloga bodovanja (stranica je javna)."""
     out = []
     for e in reps:
@@ -163,7 +163,18 @@ def to_json(reps: list[Event], now: datetime, instant: int, sources: dict | None
                    if e.extra.get("checked") else "",
         })
     return {"updated": now.isoformat(timespec="minutes"), "big": instant, "events": out,
-            "sources": sources or {}, "details_at": details_at, "news": news or []}
+            "sources": sources or {}, "details_at": details_at, "news": news or [], "history": history or []}
+
+
+def history_json(history: list, now: datetime, days: int = 30) -> list[dict]:
+    """Promjene karata za stranicu, najnovije prve."""
+    out = []
+    for h in sorted(history, key=lambda h: -h.get("ts", 0)):
+        if now.timestamp() - h.get("ts", 0) > days * 86400:
+            break
+        out.append({**h, "ts": datetime.fromtimestamp(h["ts"], now.tzinfo).isoformat(timespec="minutes"),
+                    "src": SOURCE_LABEL.get(h.get("src", ""), h.get("src", ""))})
+    return out[:400]
 
 
 COMEDY = ("stand up", "standup", "stendap", "komicar", "komicark", "komedij")

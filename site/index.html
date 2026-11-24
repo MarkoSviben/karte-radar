@@ -109,7 +109,7 @@ h2 small{font:400 13px "IBM Plex Sans",sans-serif;color:var(--muted)}
   font:700 17px/1.2 "Bricolage Grotesque",sans-serif;color:var(--muted);cursor:pointer}
 .tab[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--stamp)}
 .tab .n{font:600 13px "IBM Plex Sans",sans-serif;color:var(--muted)}
-body[data-view="events"] .news-only, body[data-view="news"] .ev-only{display:none}
+body:not([data-view="events"]) .ev-only, body:not([data-view="news"]) .news-only, body:not([data-view="hist"]) .hist-only{display:none}
 
 /* najave iz medija: izrezak iz novina */
 .clip{display:grid;grid-template-columns:58px 1fr;gap:12px;background:var(--ticket);border:1px solid var(--line);border-left:4px solid var(--line);
@@ -123,6 +123,11 @@ body[data-view="events"] .news-only, body[data-view="news"] .ev-only{display:non
 .k-najava{background:var(--ann-soft);color:var(--ann)} .k-karte{background:var(--soon-soft);color:var(--soon)} .k-spomen{background:var(--off-soft);color:var(--muted)}
 .sw.k-najava{background:var(--ann)} .sw.k-karte{background:var(--soon)} .sw.k-comedy{background:var(--stamp)}
 
+/* kretanje karata: zapis promjena */
+.clip.h-change{border-left-color:var(--warn)} .clip.h-listing{border-left-color:var(--ok)} .clip.h-news{border-left-color:var(--ann)}
+.what{font-weight:600;font-size:14px;margin-top:4px;overflow-wrap:anywhere}
+.clip.h-change .what{color:var(--warn)} .clip.h-listing .what{color:var(--ok)} .clip.h-news .what{color:var(--ann)}
+.sw.h-change{background:var(--warn)} .sw.h-listing{background:var(--ok)} .sw.h-news{background:var(--ann)}
 .legend{font-size:12.5px;color:var(--muted);margin-top:8px;line-height:1.45}
 .empty,.err{background:var(--ticket);border:1px dashed var(--line);border-radius:var(--radius);padding:28px 18px;text-align:center;color:var(--muted);margin-top:24px}
 .btn{height:36px;padding:0 14px;border-radius:10px;border:1px solid var(--ink);background:var(--ink);color:var(--paper);font:500 14px "IBM Plex Sans",sans-serif;cursor:pointer;margin-top:12px}
@@ -152,6 +157,7 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
     <div class="tabs" role="tablist" aria-label="Pogled">
       <button class="tab" role="tab" id="tab-events" data-view="events" aria-selected="true">Eventi</button>
       <button class="tab" role="tab" id="tab-news" data-view="news" aria-selected="false">Najave iz medija <span class="n" id="newsN"></span></button>
+      <button class="tab" role="tab" id="tab-hist" data-view="hist" aria-selected="false">Kretanje karata <span class="n" id="histN"></span></button>
     </div>
     <div class="frow">
       <input class="search" id="q" type="search" placeholder="Traži izvođača, komičara, dvoranu, grad…" aria-label="Pretraga">
@@ -161,6 +167,7 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
     <div class="frow">
       <div class="chips ev-only" id="ks" role="group" aria-label="Karte"></div>
       <div class="chips news-only" id="nt" role="group" aria-label="Vrsta najave"></div>
+      <div class="chips hist-only" id="hk" role="group" aria-label="Vrsta promjene"></div>
     </div>
     <div class="frow">
       <label class="toggle"><input type="checkbox" id="big" checked> <span id="bigLabel">Samo veliki</span></label>
@@ -175,6 +182,9 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
   <b>Kako čitati:</b> <i>Događaj</i> je kad se koncert ili utakmica održava. <i>Karte</i> kaže jesu li ulaznice već u prodaji.
   „Još nisu izašle“ znači da je poznat datum početka prodaje u budućnosti, ili da je izvođač tek najavljen.
   „Nepoznato“ znači da je event objavljen na prodajnom mjestu, ali to mjesto ne objavljuje status karata. Otvori ga i provjeri.<br>
+  <i>Kretanje karata</i> je zapis zadnjih 30 dana: kad je veliki event izašao u prodaju, kad je objavljen datum prodaje, kad je rasprodan
+  i kad je porasla najniža cijena (jeftinija faza rasprodana). Imena s liste „pratim“ (npr. BSH, Lollipop) ulaze uvijek, i iz medija,
+  jer Entrio ne dopušta automatsko praćenje.<br>
   <i>Najave iz medija</i> skupljaju se s glazbenih i zabavnih portala te Google Newsa za bilo kojeg izvođača, komičara ili event u regiji, i čuvaju se 7 dana.
   Ime označeno bojom je s tvoje liste.<br>
   Radar provjerava sve izvore svakih 30 minuta (noću svaki sat), a ova stranica sama povlači nove podatke dok je otvorena.
@@ -199,7 +209,8 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
 
   let DATA = null, BIG = 50;
   const KEY = "karte-radar-filters-v2";
-  const DEF = {q:"", month:"", ks:"", cc:"", big:true, onlynew:false, view:"events", nt:"", bigNews:false};
+  const DEF = {q:"", month:"", ks:"", cc:"", big:true, onlynew:false, view:"events", nt:"", bigNews:false, hk:"", onlyFollow:false};
+  const HK = [["", "Sve"], ["change", "Promjene statusa i cijene"], ["listing", "Novo u prodaji"], ["news", "Iz medija"]];
   const NT = [["", "Sve"], ["najava", "Najave"], ["karte", "Karte i prodaja"], ["comedy", "Stand-up"]];
   const NT_LABEL = {najava:"Najava", karte:"Karte / prodaja", spomen:"Spomen"};
   const st = {...DEF};
@@ -355,14 +366,65 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
     const r = $("reset"); if (r) r.onclick = () => { st.q = ""; st.nt = ""; st.bigNews = false; syncInputs(); save(); render(); };
   }
 
+  // ---------- kretanje karata ----------
+  function histMatches(h, ignoreHk){
+    if (st.onlyFollow && !h.f) return false;
+    if (!ignoreHk && st.hk && h.k !== st.hk) return false;
+    if (st.q){
+      const hay = fold([h.t, h.v, h.c, h.what, h.src, ...(h.lab || [])].join(" "));
+      if (!fold(st.q).split(/\s+/).every(w => hay.includes(w))) return false;
+    }
+    return true;
+  }
+  function histItem(h){
+    const d = new Date(h.ts);
+    const place = [h.v, h.c].filter(Boolean).join(", ");
+    return `<a class="clip h-${esc(h.k)}" href="${esc(h.u)}" target="_blank" rel="noopener">
+      <div class="time">${pad(d.getHours())}:${pad(d.getMinutes())}</div>
+      <div><div class="h">${esc(h.t)}</div>
+        <div class="what">${esc(h.what)}</div>
+        <div class="m">
+          ${h.f ? '<span class="pill who">Pratim</span>' : ""}
+          ${(h.lab || []).map(l => `<span class="pill who">${esc(l)}</span>`).join("")}
+          ${CODE[h.cc] ? `<span class="ccode">${CODE[h.cc]}</span>` : ""}${place ? `<span>${esc(place)}</span>` : ""}
+          ${h.p && h.k !== "news" ? `<span>${esc(h.p)}</span>` : ""}
+          <span>${esc(h.src)}</span>
+          <span class="score"><b>${h.sc}</b> bod.</span>
+        </div></div></a>`;
+  }
+  function renderHist(){
+    const all = DATA.history || [];
+    const base = all.filter(h => histMatches(h, true));
+    $("hk").innerHTML = HK.map(([k,l]) => {
+      const c = !k ? base.length : base.filter(h => h.k === k).length;
+      if (k && !c && st.hk !== k) return "";
+      return `<button class="chip" type="button" data-hk="${k}" aria-pressed="${st.hk===k}">${k ? `<span class="sw h-${k}"></span>` : ""}${l} <span class="n">${c}</span></button>`;
+    }).join("");
+    const items = all.filter(h => histMatches(h, false));
+    $("count").textContent = `prikazano ${items.length} od ${all.length}`;
+    let html = "", cur = "";
+    for (const h of items){
+      const lab = dayLabel(new Date(h.ts));
+      if (lab !== cur){ if (cur) html += `</div>`; cur = lab;
+        html += `<h2>${lab} <small>${items.filter(x => dayLabel(new Date(x.ts)) === lab).length}</small></h2><div class="list">`; }
+      html += histItem(h);
+    }
+    if (cur) html += `</div>`;
+    if (!all.length) html = `<div class="empty">Još nema zapisa. Ovdje se skuplja svaka promjena karata za velike evente (u prodaji, rasprodano, nova cijena ili faza, datum prodaje) i sve o imenima s liste „pratim“.</div>`;
+    else if (!items.length) html = `<div class="empty">Ništa ne odgovara filterima.<br><button class="btn" id="reset">Prikaži sve</button></div>`;
+    $("main").innerHTML = html;
+    const r = $("reset"); if (r) r.onclick = () => { st.q = ""; st.hk = ""; st.onlyFollow = false; syncInputs(); save(); render(); };
+  }
+
   function render(){
     document.body.dataset.view = st.view;
-    $("tab-events").setAttribute("aria-selected", String(st.view === "events"));
-    $("tab-news").setAttribute("aria-selected", String(st.view === "news"));
-    $("bigLabel").textContent = st.view === "news" ? "Samo važne" : "Samo veliki";
-    $("big").checked = st.view === "news" ? st.bigNews : st.big;
+    for (const v of ["events", "news", "hist"]) $("tab-" + v).setAttribute("aria-selected", String(st.view === v));
+    $("bigLabel").textContent = {news: "Samo važne", hist: "Samo s liste „pratim“"}[st.view] || "Samo veliki";
+    $("big").checked = {news: st.bigNews, hist: st.onlyFollow}[st.view] ?? st.big;
     $("newsN").textContent = (DATA.news || []).length || "";
+    $("histN").textContent = (DATA.history || []).length || "";
     if (st.view === "news") return renderNews();
+    if (st.view === "hist") return renderHist();
     renderChips();
     const evs = DATA.events.filter(e => matches(e, false));
     $("count").textContent = `prikazano ${evs.length} od ${DATA.events.length}`;
@@ -416,7 +478,7 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
 
   function syncInputs(){
     $("q").value = st.q; $("month").value = st.month; $("cc").value = st.cc;
-    $("big").checked = st.view === "news" ? st.bigNews : st.big; $("onlynew").checked = st.onlynew;
+    $("big").checked = {news: st.bigNews, hist: st.onlyFollow}[st.view] ?? st.big; $("onlynew").checked = st.onlynew;
   }
 
   function freshness(){
@@ -443,11 +505,15 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
   function setupOnce(){
     $("ks").onclick = ev => { const b = ev.target.closest(".chip"); if (!b) return; st.ks = b.dataset.ks; save(); render(); };
     $("nt").onclick = ev => { const b = ev.target.closest(".chip"); if (!b) return; st.nt = b.dataset.nt; save(); render(); };
+    $("hk").onclick = ev => { const b = ev.target.closest(".chip"); if (!b) return; st.hk = b.dataset.hk; save(); render(); };
     document.querySelectorAll(".tab").forEach(t => t.onclick = () => { st.view = t.dataset.view; save(); render(); window.scrollTo({top:0}); });
     let t; $("q").oninput = ev => { clearTimeout(t); t = setTimeout(() => { st.q = ev.target.value.trim(); save(); render(); }, 120); };
     $("month").onchange = ev => { st.month = ev.target.value; save(); render(); };
     $("cc").onchange = ev => { st.cc = ev.target.value; save(); render(); };
-    $("big").onchange = ev => { if (st.view === "news") st.bigNews = ev.target.checked; else st.big = ev.target.checked; save(); render(); };
+    $("big").onchange = ev => {
+      const v = ev.target.checked;
+      if (st.view === "news") st.bigNews = v; else if (st.view === "hist") st.onlyFollow = v; else st.big = v;
+      save(); render(); };
     $("onlynew").onchange = ev => { st.onlynew = ev.target.checked; save(); render(); };
   }
 
