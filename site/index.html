@@ -187,7 +187,7 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
   jer Entrio ne dopušta automatsko praćenje.<br>
   <i>Najave iz medija</i> skupljaju se s glazbenih i zabavnih portala te Google Newsa za bilo kojeg izvođača, komičara ili event u regiji, i čuvaju se 7 dana.
   Ime označeno bojom je s tvoje liste.<br>
-  Radar provjerava sve izvore svakih 30 minuta (noću svaki sat), a ova stranica sama povlači nove podatke dok je otvorena.
+  Radar provjerava sve izvore svakih 15 minuta (noću svaki sat), a ova stranica sama povlači nove podatke dok je otvorena.
 </footer>
 
 <script>
@@ -491,7 +491,7 @@ footer{color:var(--muted);font-size:13px;padding:36px 0 48px;line-height:1.6}
     $("fresh").classList.toggle("stale", stale);
     $("freshText").innerHTML = stale
       ? `Podaci su stari ${ago(DATA.updated).replace("prije ","")} (zadnja provjera ${upd.getDate()}.${upd.getMonth()+1}. u ${pad(upd.getHours())}:${pad(upd.getMinutes())}). Radar se trebao pokrenuti u međuvremenu: pogledaj ntfy obavijesti ili GitHub Actions.`
-      : `Zadnja provjera svih izvora: <b>${ago(DATA.updated)}</b> (${pad(upd.getHours())}:${pad(upd.getMinutes())}). Iduća za najviše 30 min.${det}${bad.length ? ` Izvori koji trenutno ne rade: ${esc(bad.join(", "))}.` : ""}`;
+      : `Zadnja provjera svih izvora: <b>${ago(DATA.updated)}</b> (${pad(upd.getHours())}:${pad(upd.getMinutes())}). Iduća za najviše 15 min (noću 60).${det}${bad.length ? ` Izvori koji trenutno ne rade: ${esc(bad.join(", "))}.` : ""}`;
   }
 
   function header(){

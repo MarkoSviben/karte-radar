@@ -1,19 +1,26 @@
 name: radar
 
+# Repo je javan, pa su GitHub minute besplatne i neogranicene.
+# Jedan run radi u petlji ~5,5 h: danju skenira svakih 15 min, nocu svaki sat.
+# Na kraju sam pokrene iduci run (workflow_dispatch), pa lanac ne ovisi o GitHub cronu,
+# koji zna preskakati runove satima. Cron ostaje samo kao rezerva ako se lanac prekine.
+
 on:
   schedule:
-    # vremena su UTC (zimi +1h, ljeti +2h po nasem). :13 i :43 jer je GitHub zagusen oko punih sati.
-    - cron: "13,43 5-22 * * *"  # danju svakih 30 min
-    - cron: "13 23,0-4 * * *"   # nocu svaki sat
+    - cron: "13 * * * *"  # rezerva: ako lanac stoji, pokreni ga (dok lanac radi, ovaj run samo ceka u redu)
   workflow_dispatch:
     inputs:
       digest_now:
         description: "Posalji jutarnji sazetak odmah"
         type: boolean
         default: false
+      loop_minutes:
+        description: "Koliko minuta run radi u petlji (0 = samo jedan krug)"
+        default: "330"
 
 permissions:
   contents: write
+  actions: write  # za pokretanje iduceg runa u lancu
 
 concurrency:
   group: radar
@@ -22,7 +29,16 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    timeout-minutes: 355
+    env:
+      NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+      TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      BANDSINTOWN_APP_ID: ${{ secrets.BANDSINTOWN_APP_ID }}
+      RADAR_PAGE_URL: https://${{ github.repository_owner }}.github.io/karte-pregled/
+      GH_TOKEN: ${{ github.token }}
+      PAGES_DEPLOY_KEY: ${{ secrets.PAGES_DEPLOY_KEY }}
+      PAGES_REPO: ${{ github.repository_owner }}/karte-pregled
     steps:
       - uses: actions/checkout@v4
 
@@ -44,47 +60,44 @@ jobs:
             echo "nema stanja -> prvi run (baseline)"
           fi
 
-      - name: Scan
+      - name: Petlja (scan, stanje, stranica)
         env:
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          BANDSINTOWN_APP_ID: ${{ secrets.BANDSINTOWN_APP_ID }}
-          RADAR_PAGE_URL: https://${{ github.repository_owner }}.github.io/karte-pregled/
-        run: python -m radar scan ${{ inputs.digest_now && '--digest-now' || '' }}
-
-      - name: Spremi stanje
-        env:
-          GH_TOKEN: ${{ github.token }}
+          LOOP_MINUTES: ${{ inputs.loop_minutes || '330' }}
+          FIRST_ARGS: ${{ inputs.digest_now && '--digest-now' || '' }}
         run: |
-          cd state
-          git init -q -b state
-          git add seen.json PREGLED.md
-          git -c user.name="radar-bot" -c user.email="radar-bot@users.noreply.github.com" commit -qm "state $(date -u +%FT%TZ)"
-          git push -qf "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" state
+          end=$(( $(date +%s) + LOOP_MINUTES * 60 ))
+          args="$FIRST_ARGS"; alerted=0; n=0
+          while :; do
+            start=$(date +%s); n=$((n + 1))
+            echo "::group::krug $n ($(date -u +%H:%M) UTC)"
+            if bash .github/scripts/cycle.sh $args; then
+              alerted=0
+            else
+              echo "::warning::krug $n nije uspio"
+              # jedna obavijest po nizu gresaka, ne svaki krug
+              if [ $alerted = 0 ] && [ -n "$NTFY_TOPIC" ]; then
+                curl -s -o /dev/null -H "Priority: high" \
+                  -d "❌ Karte radar: krug nije uspio, pokušavam dalje. Log: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+                  "https://ntfy.sh/${NTFY_TOPIC}"
+              fi
+              alerted=1
+            fi
+            echo "::endgroup::"
+            args=""
+            h=$(date -u +%H | sed 's/^0//')
+            if [ "$h" -ge 5 ] && [ "$h" -le 22 ]; then iv=900; else iv=3600; fi  # danju 15 min, nocu 60 min (UTC)
+            next=$(( start + iv ))
+            [ "$next" -ge "$end" ] && break
+            sleep $(( next - $(date +%s) > 0 ? next - $(date +%s) : 0 ))
+          done
+          echo "gotovo nakon $n krugova"
 
-      - name: Objavi stranicu (karte-pregled)
-        env:
-          PAGES_DEPLOY_KEY: ${{ secrets.PAGES_DEPLOY_KEY }}
-          PAGES_REPO: ${{ github.repository_owner }}/karte-pregled
-        run: |
-          if [ -z "$PAGES_DEPLOY_KEY" ] || [ ! -f state/site/data.json ]; then echo "preskacem objavu stranice"; exit 0; fi
-          mkdir -p ~/.ssh && echo "$PAGES_DEPLOY_KEY" > ~/.ssh/pages && chmod 600 ~/.ssh/pages
-          ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts 2>/dev/null
-          mkdir -p pub && cp state/site/index.html state/site/data.json pub/ && touch pub/.nojekyll
-          cd pub
-          git init -q -b main
-          git add -A
-          git -c user.name="radar-bot" -c user.email="radar-bot@users.noreply.github.com" commit -qm "pregled $(date -u +%FT%TZ)"
-          GIT_SSH_COMMAND="ssh -i ~/.ssh/pages -o IdentitiesOnly=yes" git push -qf "git@github.com:${PAGES_REPO}.git" main
-          rm -f ~/.ssh/pages
+      - name: Pokreni iduci run (lanac)
+        if: always() && (inputs.loop_minutes || '330') != '0'
+        run: gh workflow run radar.yml --ref "${GITHUB_REF_NAME}" && echo "iduci run zakazan"
 
       - name: Javi gresku
         if: failure()
-        env:
-          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           MSG="❌ Karte radar: run je pao. Log: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           if [ -n "$NTFY_TOPIC" ]; then
@@ -92,6 +105,7 @@ jobs:
           fi
           if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
             for chat in ${TELEGRAM_CHAT_ID//,/ }; do
-              curl -s -o /dev/null "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage"                 --data-urlencode "chat_id=${chat}" --data-urlencode "text=${MSG}"
+              curl -s -o /dev/null "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+                --data-urlencode "chat_id=${chat}" --data-urlencode "text=${MSG}"
             done
           fi

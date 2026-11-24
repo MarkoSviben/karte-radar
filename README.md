@@ -10,7 +10,7 @@ Prati nove koncerte, utakmice, festivale i stand-up u **HR, RS, BiH i SLO** i š
 - **👀 lista „pratim“** u [config/watchlist.yaml](config/watchlist.yaml) (BSH, Lollipop, Daniel Sloss, INmusic...): za svako ime radar sam pretražuje medije o kartama (faze, early bird, rasprodano) i javlja svaku novu vijest
 - **⚠️ upozorenje** kad neki izvor prestane raditi (stranica promijenila dizajn)
 
-Radi besplatno na GitHub Actionsu, svakih 30 min danju i svaki sat noću.
+Radi besplatno na GitHub Actionsu, svakih 15 min danju i svaki sat noću.
 
 ## Pregledna stranica
 
@@ -74,8 +74,12 @@ python -m venv .venv
 $env:NTFY_TOPIC="..."; .venv\Scripts\python -m radar test-notify
 ```
 
-## Potrošnja GitHub minuta
-Oko 42 runa dnevno, svaki traje manje od minute, pa je to ~1300 od 2000 besplatnih minuta mjesečno za privatni repo. Za češće provjere promijeni `cron` u [.github/workflows/radar.yml](.github/workflows/radar.yml), ali pazi na limit.
+## Kako se pokreće (lanac)
+Repo je **javan**, pa su GitHub minute besplatne i neograničene. Tajne (ntfy ime, ključevi) su u GitHub secrets i ne vide se.
+- Jedan run radi u petlji ~5,5 h: danju skenira svakih 15 min, noću svaki sat. Na kraju sam pokrene idući run.
+- GitHub cron (svaki sat) je samo rezerva ako se lanac prekine. Sam po sebi zna preskakati runove satima, zato se ne oslanjamo na njega.
+- U Actions popisu vidjet ćeš poneki **cancelled** run: to je rezervni cron koji je čekao u redu dok lanac radi. To je normalno.
+- Ručni run od samo jednog kruga: `gh workflow run radar -f loop_minutes=0`. Interval se mijenja u petlji u [.github/workflows/radar.yml](.github/workflows/radar.yml).
 
 ## Kad nešto pukne
 - Dobiješ **⚠️ Izvor X ne radi** → stranica je promijenila HTML. Parser je u `radar/sources/<izvor>.py`; `python -m radar check --only <izvor>` pokazuje što vidi.
